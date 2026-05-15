@@ -1,0 +1,17 @@
+# Dependency directories
+backend/node_modules/
+frontend/node_modules/
+
+# Production build directories
+frontend/dist/
+
+# User uploads (Backend)
+backend/uploads/
+
+# Environment variables (Crucial for security)
+backend/.env
+
+# System files
+.DS_Store
+Thumbs.db
+.vscode/

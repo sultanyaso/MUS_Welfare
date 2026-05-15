@@ -1,0 +1,369 @@
+/* ================================================================
+   responsive.css  —  MUS Welfare  —  Full UI Responsiveness
+   Import once in main.jsx. Works on top of all inline styles.
+   ================================================================ */
+
+html, body, #root { overflow-x: hidden !important; max-width: 100vw; }
+*, *::before, *::after { box-sizing: border-box; }
+img, svg { max-width: 100%; }
+
+/* On small screens disable global fade hiding (prevent blank page) */
+@media (max-width: 860px) {
+  .fade-element { opacity: 1 !important; transform: none !important; }
+}
+
+/* Force-show any inline-faded children (many elements use inline opacity:0) */
+@media (max-width: 860px) {
+  .fade-element *[style*="opacity:0"],
+  .fade-element *[style*="opacity: 0"] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+/* ================================================================
+   LANDING PAGE — Navbar
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Show hamburger, hide desktop links & auth */
+  .hamburger       { display: flex !important; }
+  .nav-links       { display: none !important; }
+  .nav-auth        { display: none !important; }
+}
+
+/* ================================================================
+   LANDING PAGE — Hero  (inline grid 1fr 1fr → stack)
+   ================================================================ */
+@media (max-width: 860px) {
+  /* Hero two-column grid */
+  #home > div > div > div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hide the right column (logo showcase + info card) on mobile */
+  #home > div > div > div > div:last-child {
+    display: none !important;
+  }
+
+  /* Hero section padding */
+  #home > div {
+    padding-top: 90px !important;
+    padding-bottom: 40px !important;
+    padding-left: 5vw !important;
+    padding-right: 5vw !important;
+  }
+
+  /* Headline */
+  #home h1 {
+    font-size: clamp(2rem, 7vw, 3rem) !important;
+  }
+
+  /* CTA buttons row */
+  #home div[style*="display:'flex'"][style*="flexWrap"],
+  #home > div > div > div > div > div[style*="gap:14"] {
+    flex-wrap: wrap !important;
+  }
+
+  #home a[style*="padding:'14px 32px'"],
+  #home button[style*="padding:'14px 28px'"] {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
+
+/* ================================================================
+   LANDING PAGE — About  (inline grid 1fr 1fr → stack)
+   ================================================================ */
+@media (max-width: 860px) {
+  #about > div > div[style*="gridTemplateColumns: \"1fr 1fr\""] {
+    grid-template-columns: 1fr !important;
+  }
+  /* values 2x2 grid stays but gets smaller */
+  #about > div > div > div:last-child[style*="gridTemplateColumns"] {
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* values cards 2x2 → 1 col */
+  #about > div > div > div:last-child[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ================================================================
+   LANDING PAGE — Contact  (inline grid 1fr 1fr → stack)
+   ================================================================ */
+@media (max-width: 860px) {
+  #contact > div > div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+}
+
+/* ================================================================
+   LANDING PAGE — Footer  (3-col grid → 1 col)
+   ================================================================ */
+@media (max-width: 640px) {
+  footer > div > div[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+
+  footer > div > div:last-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+}
+
+/* ================================================================
+   ALL SECTIONS — padding reduction on mobile
+   ================================================================ */
+@media (max-width: 640px) {
+  section[style*="padding: '96px"] ,
+  section[style*="padding: \"96px"] {
+    padding-top: 52px !important;
+    padding-bottom: 52px !important;
+  }
+}
+
+/* ================================================================
+   MEMBER DASHBOARD — Sidebar collapse on mobile
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Shrink sidebar to icon-only strip */
+  .mem-sidebar {
+    width: 56px !important;
+    min-width: 56px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Hide text labels, user info, collapse button */
+  .mem-sidebar .side-label   { display: none !important; }
+  .mem-sidebar .side-user    { display: none !important; }
+  .mem-sidebar .side-collapse { display: none !important; }
+
+  /* Main content padding */
+  .mem-main {
+    padding: 18px 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .mem-sidebar { width: 48px !important; min-width: 48px !important; }
+  .mem-main    { padding: 12px 10px !important; }
+}
+
+/* ================================================================
+   MEMBER DASHBOARD — Stats cards, charts, content grids
+   ================================================================ */
+@media (max-width: 860px) {
+  /* 2-col or 3-col stat cards → 2-col */
+  .mem-main div[style*="repeat(auto-fit"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Payment + chart side-by-side → stack */
+  .mem-main div[style*="gridTemplateColumns: '2fr"] ,
+  .mem-main div[style*="gridTemplateColumns: \"2fr"] ,
+  .mem-main div[style*="gridTemplateColumns:'2fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 540px) {
+  /* stat cards → 1-col */
+  .mem-main div[style*="repeat(auto-fit"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ================================================================
+   ADMIN DASHBOARD — Sidebar + main layout
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Admin sidebar — icon-only */
+  aside[style*="background:'linear-gradient(180deg,#081a0c"] ,
+  aside[style*="background: 'linear-gradient(180deg,#081a0c"] {
+    width: 56px !important;
+    min-width: 56px !important;
+  }
+
+  /* Hide sidebar text when collapsed by media query */
+  aside[style*="background:'linear-gradient(180deg,#081a0c"] span[style*="whiteSpace:'nowrap'"] ,
+  aside[style*="background:'linear-gradient(180deg,#081a0c"] div[style*="fontFamily:'Fraunces"] ,
+  aside[style*="background:'linear-gradient(180deg,#081a0c"] button[style*="Logout"] span {
+    display: none !important;
+  }
+
+  /* Main content */
+  div[style*="display:'flex'"][style*="minHeight:'100vh'"] > main {
+    padding: 18px 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  div[style*="display:'flex'"][style*="minHeight:'100vh'"] > main {
+    padding: 12px 10px !important;
+  }
+}
+
+/* ================================================================
+   ADMIN DASHBOARD — Overview content grids
+   ================================================================ */
+@media (max-width: 860px) {
+  /* Overview chart + side panels  (1fr 340px → stack) */
+  div[style*="gridTemplateColumns:'1fr 340px'"] ,
+  div[style*="gridTemplateColumns: '1fr 340px'"] ,
+  div[style*="gridTemplateColumns:\"1fr 340px\""] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stat cards auto-fit */
+  div[style*="repeat(auto-fit,minmax(200px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  div[style*="repeat(auto-fit,minmax(200px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ================================================================
+   ADMIN — Members table  → horizontal scroll on mobile
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Wrap the table in overflow-x */
+  div[style*="overflowX:'auto'"] ,
+  div[style*="overflow-x: auto"] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Members table min-width so it scrolls */
+  table {
+    min-width: 580px !important;
+  }
+
+  /* Table container */
+  div:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* ================================================================
+   ADMIN — Filter bar  → wrap on small screens
+   ================================================================ */
+@media (max-width: 640px) {
+  /* Tab + search row */
+  div[style*="display:'flex'"][style*="gap:6"][style*="marginBottom:20"] ,
+  div[style*="display:'flex'"][style*="gap:6"][style*="marginBottom:24"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Search input full width */
+  div[style*="marginLeft:'auto'"][style*="position:'relative'"] {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  div[style*="marginLeft:'auto'"][style*="position:'relative'"] input {
+    width: 100% !important;
+  }
+}
+
+/* ================================================================
+   MODALS — full-screen on mobile
+   ================================================================ */
+@media (max-width: 540px) {
+  /* Modal backdrop → bottom sheet */
+  div[style*="position:'fixed'"][style*="backdropFilter:'blur(4px)'"] {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  /* Modal card → full width, rounded top */
+  div[style*="position:'fixed'"][style*="backdropFilter:'blur(4px)'"] > div[style*="borderRadius:20"] ,
+  div[style*="position:'fixed'"][style*="backdropFilter:'blur(4px)'"] > div[style*="borderRadius: 20"] {
+    border-radius: 20px 20px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ================================================================
+   TOAST NOTIFICATIONS — full width bottom on mobile
+   ================================================================ */
+@media (max-width: 540px) {
+  div[style*="position:'fixed'"][style*="bottom:28"] ,
+  div[style*="position:'fixed'"][style*="bottom:24"] {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 16px !important;
+    max-width: calc(100% - 24px) !important;
+  }
+}
+
+/* ================================================================
+   LOGIN PAGE — hide left panel on mobile  (already in Login.jsx
+   via .login-left class, but add fallback)
+   ================================================================ */
+@media (max-width: 860px) {
+  .login-left  { display: none !important; }
+  .login-right { padding: 28px 20px !important; }
+}
+
+@media (max-width: 480px) {
+  .login-right  { padding: 20px 14px !important; }
+  .login-card   { max-width: 100% !important; }
+}
+
+/* ================================================================
+   SIGNUP PAGE — hide left panel on mobile
+   ================================================================ */
+@media (max-width: 860px) {
+  .signup-left  { display: none !important; }
+  .signup-right { padding: 28px 20px !important; }
+}
+
+@media (max-width: 480px) {
+  .signup-right { padding: 20px 14px !important; }
+}
+
+/* ================================================================
+   GENERAL CARD PADDING REDUCTION
+   ================================================================ */
+@media (max-width: 480px) {
+  /* White cards with large padding */
+  div[style*="padding:'36px 32px'"] ,
+  div[style*="padding: '36px 32px'"] { padding: 18px 16px !important; }
+
+  div[style*="padding:'28px 24px'"] ,
+  div[style*="padding: '28px 24px'"] { padding: 16px 14px !important; }
+
+  div[style*="padding:'24px 28px'"] ,
+  div[style*="padding: '24px 28px'"] { padding: 14px !important; }
+}
+
+/* ================================================================
+   TYPOGRAPHY SCALE
+   ================================================================ */
+@media (max-width: 640px) {
+  h1 { font-size: clamp(1.7rem, 6vw, 2.4rem) !important; line-height: 1.15 !important; }
+  h2 { font-size: clamp(1.4rem, 5vw, 2rem)   !important; }
+  h3 { font-size: clamp(1rem,   4vw, 1.3rem)  !important; }
+}
+
+/* ================================================================
+   SCROLLBAR — slim on mobile
+   ================================================================ */
+@media (max-width: 640px) {
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+}
