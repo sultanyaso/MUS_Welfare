@@ -63,6 +63,14 @@ export const memberAPI = {
   submitPayment:  (formData) => api.post('/member/submit-payment', formData),
 };
 
+//family tree api
+export const familyAPI = {
+  getAll:    ()           => api.get('/family-tree'),
+  addMember: (data)       => api.post('/family-tree', data),
+  update:    (id, data)   => api.patch(`/family-tree/${id}`, data),
+  remove:    (id)         => api.delete(`/family-tree/${id}`),
+};
+
 export default api;
 export const announcementAPI = {
   getAll:      ()         => api.get('/announcements'),
