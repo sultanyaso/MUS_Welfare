@@ -7,6 +7,7 @@ import adminRoutes    from './routes/admin.js';
 import paymentRoutes  from './routes/payments.js';
 import memberRoutes        from './routes/member.js';
 import announcementRoutes from './routes/announcements.js';
+import familyRoutes   from './routes/familyTree.js';
 
 // ── Connect to MongoDB ───────────────────────────────────────
 connectDB();
@@ -35,6 +36,7 @@ app.use('/api/admin',    adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/member',        memberRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/family-tree',  familyRoutes);
 
 // ── Health Check ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
