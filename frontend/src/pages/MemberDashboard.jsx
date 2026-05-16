@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { memberAPI, announcementAPI } from '../api';
+import FamilyTreePage from './FamilyTreePage'; //family tree page component 
 
 const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CUR_YEAR  = new Date().getFullYear();
@@ -1043,6 +1044,7 @@ export default function MemberDashboard() {
     { key:'payments', label:'Payments', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
     { key:'paynow',        label:'Pay Now',       icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>, gold:true },
     { key:'announcements', label:'Announcements', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 20V4l-10 4L2 4v16l10-4 10 4z"/></svg> },
+    { key:'family-tree', label:'Family Tree', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="6" x2="6" y2="12"/><line x1="12" y1="6" x2="18" y2="12"/><circle cx="12" cy="2" r="2"/><circle cx="6" cy="14" r="2"/><circle cx="18" cy="14" r="2"/></svg> },
   ];
 
   return (
@@ -1128,7 +1130,7 @@ export default function MemberDashboard() {
       </aside>
 
       {/* ── MAIN ── */}
-      <main className="mem-main" style={{ flex:1, padding:'28px 32px', overflowY:'auto', minWidth:0 }}>
+      <main className="mem-main" style={{ flex:1, minHeight:0, padding:'28px 32px', overflowY:'auto', minWidth:0 }}>
         {page === 'overview' && (
           <OverviewPage stats={stats} myPayments={myPayments} onNavigate={setPage} onPayNow={() => setShowPayNow(true)}/>
         )}
@@ -1137,6 +1139,7 @@ export default function MemberDashboard() {
           <PaymentsPage myPayments={myPayments} loadingMine={loadingMine} showToast={showToast} onPayNow={() => setShowPayNow(true)}/>
         )}
         {page === 'announcements' && <AnnouncementsPage/>}
+        {page === 'family-tree' && <FamilyTreePage isAdmin={false} showToast={showToast}/>}
       </main>
 
       {/* ── Pay Now Modal ── */}
