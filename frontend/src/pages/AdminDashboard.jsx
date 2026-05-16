@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { adminAPI, paymentAPI, announcementAPI } from '../api';
+import FamilyTreePage from './FamilyTreePage';
 
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -1321,6 +1322,7 @@ export default function AdminDashboard() {
   { key:'payments',         label:'Payments',        icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
   { key:'pending-payments', label:'Verify Payments', icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, badge: stats?.pendingPayments, gold: true },
   { key:'announcements',    label:'Announcements',  icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 20V4l-10 4L2 4v16l10-4 10 4z"/></svg> },
+  { key:'family-tree', label:'Family Tree',   icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="6" x2="6" y2="12"/><line x1="12" y1="6" x2="18" y2="12"/><circle cx="12" cy="2" r="2"/><circle cx="6" cy="14" r="2"/><circle cx="18" cy="14" r="2"/></svg> },
 ];
 
   return (
@@ -1434,12 +1436,13 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <main style={{ flex:1, padding:'32px', overflowY:'auto', minWidth:0 }}>
+      <main style={{ flex:1, minHeight:0, padding:'32px', overflowY:'auto', minWidth:0 }}>
         {page === 'overview'         && <OverviewPage        stats={stats} onNavigate={navigate}/>}
         {page === 'members'          && <MembersPage         initialFilter={pageParams.filter || 'pending'} showToast={showToast} onRefreshStats={fetchStats}/>}
         {page === 'payments'         && <PaymentsPage        showToast={showToast}/>}
         {page === 'pending-payments' && <PendingPaymentsPage showToast={showToast} onRefreshStats={fetchStats}/>}
         {page === 'announcements'    && <AnnouncementsPage   showToast={showToast}/>}
+        {page === 'family-tree' && <FamilyTreePage isAdmin={true} showToast={showToast}/>}
       </main>
 
       {/* Toast */}
