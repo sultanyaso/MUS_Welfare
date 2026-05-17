@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 
 // ── Send Email Verification Link ─────────────────────────────
 export async function sendVerificationEmail(toEmail, fullName, verifyToken) {
-  const BASE_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+  const BASE_URL = process.env.BACKEND_URL || 'http://localhost:5000' ||'https://mus-welfare.vercel.app';
   const link = `${BASE_URL}/api/auth/verify-email?token=${verifyToken}`;
 
   await transporter.sendMail({
