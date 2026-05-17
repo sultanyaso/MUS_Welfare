@@ -1,35 +1,17 @@
 import express  from 'express';
 import multer   from 'multer';
-import path     from 'path';
-import fs       from 'fs';
-import { fileURLToPath } from 'url';
 import User     from '../models/User.js';
 import Payment  from '../models/Payment.js';
 import { authenticate } from '../middleware/auth.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
 
 const router = express.Router();
 router.use(authenticate);
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── Multer: save screenshots to backend/uploads/ ─────────────
-const uploadsDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename:    (_req, file, cb) => {
-    const ext  = path.extname(file.originalname);
-    const name = `ss-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
-    cb(null, name);
-  },
-});
-
+// ── Multer: memory storage for Vercel serverless ─────────────
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (_req, file, cb) => {
     if (['image/jpeg','image/png','image/jpg','image/webp'].includes(file.mimetype))
@@ -72,7 +54,6 @@ router.get('/my-payments', async (req, res) => {
 });
 
 // ── POST /api/member/submit-payment ──────────────────────────
-// Handles both QR (no file) and account transfer (screenshot upload)
 router.post('/submit-payment', upload.single('screenshot'), async (req, res) => {
   try {
     const { month, year, amount, note, paymentMethod } = req.body;
@@ -108,7 +89,10 @@ router.post('/submit-payment', upload.single('screenshot'), async (req, res) => 
     if (method === 'account' && !req.file)
       return res.status(400).json({ message: 'Screenshot is required for bank transfer submissions.' });
 
-    const screenshotUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    // Store screenshot as base64 string in database
+    const screenshotUrl = req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+      : '';
 
     const payment = await Payment.create({
       member:        memberId,
