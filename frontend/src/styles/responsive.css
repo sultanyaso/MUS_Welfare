@@ -1,6 +1,5 @@
 /* ============================================================
    responsive.css — MUS Welfare App
-   Static CSS fallbacks (runtime overrides in useResponsive.js)
    ============================================================ */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -74,43 +73,24 @@ img, svg { max-width: 100%; }
 }
 
 /* ============================================================
-   LANDING PAGE — Fix animated elements staying invisible on mobile
-   Hero elements have opacity:0 inline + animation:'fadeUp both'
-   which means they stay at opacity:0 until the animation runs.
-   On mobile we disable animations and show content immediately.
+   LANDING PAGE — Fix animated elements on MOBILE ONLY
+   Elements have opacity:0 inline + animation:'fadeUp both'
+   On mobile disable animations so content shows immediately.
+   Desktop is NOT affected — animations run normally there.
    ============================================================ */
-
-/* Ensure keyframe animations always complete properly on desktop */
-[style*="animation:"][style*="opacity:0"],
-[style*="animation: "][style*="opacity:0"] {
-  animation-fill-mode: both !important;
-}
-
-/* On mobile — skip animations, show all content immediately */
 @media (max-width: 768px) {
-  /* Override opacity:0 on all animated elements */
-  [style*="animation:"][style*="opacity:0"],
-  [style*="animation: "][style*="opacity:0"],
-  [style*="animation:'fadeUp"],
-  [style*="animation:'slideUp"],
-  [style*="animation:'slideInRight"],
-  [style*='animation:"fadeUp'],
-  [style*='animation:"slideUp'],
-  [style*='animation:"slideInRight'] {
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
-  }
-
-  /* Fade-element sections — visible immediately, no scroll trigger */
   .fade-element {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
   }
 
-  /* Hero content — guarantee visibility */
-  #home h1,
-  #home p,
-  #home div { opacity: 1 !important; }
+  #home [style*="opacity:0"],
+  #about [style*="opacity:0"],
+  #features [style*="opacity:0"],
+  #contact [style*="opacity:0"] {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
 }
