@@ -7,7 +7,6 @@ import AdminDashboard  from './pages/AdminDashboard';
 import MemberDashboard from './pages/MemberDashboard';
 import { useResponsive } from './hooks/useResponsive';
 
-/* ── Route guards ── */
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -29,7 +28,10 @@ function PublicRoute({ children }) {
   return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
 }
 
+/* Calls useResponsive once at root — injects runtime CSS for every page */
 function AppRoutes() {
+  useResponsive();
+
   return (
     <Routes>
       <Route path="/"          element={<Landing />} />
