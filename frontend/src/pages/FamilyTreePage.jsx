@@ -132,7 +132,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
     : new Set();
 
   // pan handlers
-  const onMouseDown = e => {
+  const startDrag = e => {
     dragging.current = true;
     lastPt.current = { x: e.clientX, y: e.clientY };
     e.preventDefault();
@@ -282,7 +282,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
       {/* ── Tree canvas ── */}
       <div ref={canvasRef} style={{ flex:'1 1 0', minHeight:0, background:'white', borderRadius:16, border:'1px solid rgba(0,0,0,0.07)', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', overflow:'auto', position:'relative', cursor:dragging.current?'grabbing':'grab', touchAction:'none', userSelect:'none', MozUserSelect:'none', WebkitUserSelect:'none' }}
-        onMouseDown={onMouseDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        onMouseDown={startDrag} onPointerDown={startDrag} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={onPointerUp}>
 
         {loading ? (
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, color:'#8a9e8c' }}>
@@ -385,11 +385,25 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
       {/* ── Detail panel — shown when a node is selected ── */}
       {selected && (
-        <div style={{ position:'fixed', right:24, top:'50%', transform:'translateY(-50%)', zIndex:500,
-          background:'white', borderRadius:16, padding:'20px 22px', width:240,
-          boxShadow:'0 12px 40px rgba(0,0,0,0.15)', border:'1px solid rgba(0,0,0,0.07)',
-          animation:'slideIn 0.2s ease' }}>
-          <style>{`@keyframes slideIn{from{opacity:0;transform:translateY(-50%) translateX(10px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}`}</style>
+        <div>
+          <style>{`
+            @keyframes slideIn{from{opacity:0;transform:translateY(-50%) translateX(10px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}
+            @media(max-width: 860px) {
+              .family-tree-detail-panel {
+                position: static !important;
+                transform: none !important;
+                right: auto !important;
+                top: auto !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-top: 16px !important;
+              }
+            }
+          `}</style>
+          <div className="family-tree-detail-panel" style={{ position:'fixed', right:24, top:'50%', transform:'translateY(-50%)', zIndex:500,
+            background:'white', borderRadius:16, padding:'20px 22px', width:240,
+            boxShadow:'0 12px 40px rgba(0,0,0,0.15)', border:'1px solid rgba(0,0,0,0.07)',
+            animation:'slideIn 0.2s ease' }}>
           <button onClick={() => setSelected(null)}
             style={{ position:'absolute', top:10, right:12, background:'none', border:'none', fontSize:'1.1rem', cursor:'pointer', color:'#aaa' }}>×</button>
 
@@ -428,6 +442,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
             </div>
           )}
         </div>
+      </div>
       )}
 
       {/* ── Add / Edit modal ── */}
