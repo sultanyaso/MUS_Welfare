@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Uses VITE_API_URL env variable in production, falls back to localhost for dev
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: BASE_URL,
 });
 
 // Attach JWT + smart Content-Type (don't override for FormData)
@@ -39,7 +42,6 @@ export const adminAPI = {
   reject:             id             => api.patch(`/admin/members/${id}/reject`),
   deactivate:         id             => api.patch(`/admin/members/${id}/deactivate`),
   deleteMember:       id             => api.delete(`/admin/members/${id}`),
-  // Pending self-payments
   getPendingPayments: ()             => api.get('/admin/pending-payments'),
   approvePayment:     (id, note='') => api.patch(`/admin/pending-payments/${id}/approve`, { adminNote: note }),
   rejectPayment:      (id, note='') => api.patch(`/admin/pending-payments/${id}/reject`,  { adminNote: note }),
@@ -59,19 +61,16 @@ export const memberAPI = {
   getMyPayments:  ()     => api.get('/member/my-payments'),
   getOrgPayments: (year) => api.get('/member/org-payments', { params: { year } }),
   getSummary:     (year) => api.get('/member/summary', { params: { year } }),
-  // FormData handles both qr (no file) and account (with screenshot)
   submitPayment:  (formData) => api.post('/member/submit-payment', formData),
 };
 
-//family tree api
 export const familyAPI = {
-  getAll:    ()           => api.get('/family-tree'),
-  addMember: (data)       => api.post('/family-tree', data),
-  update:    (id, data)   => api.patch(`/family-tree/${id}`, data),
-  remove:    (id)         => api.delete(`/family-tree/${id}`),
+  getAll:    ()         => api.get('/family-tree'),
+  addMember: (data)     => api.post('/family-tree', data),
+  update:    (id, data) => api.patch(`/family-tree/${id}`, data),
+  remove:    (id)       => api.delete(`/family-tree/${id}`),
 };
 
-export default api;
 export const announcementAPI = {
   getAll:      ()         => api.get('/announcements'),
   create:      data       => api.post('/announcements', data),
@@ -79,3 +78,5 @@ export const announcementAPI = {
   delete:      id         => api.delete(`/announcements/${id}`),
   resendEmail: id         => api.post(`/announcements/${id}/resend-email`),
 };
+
+export default api;
