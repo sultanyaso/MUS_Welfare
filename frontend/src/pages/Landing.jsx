@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 /* ─── Real org logo ─── */
@@ -482,9 +482,9 @@ function HowItWorks() {
 
 /* ─── Contact Section ─── */
 function Contact() {
-  const [form,    setForm]    = React.useState({ name: "", email: "", message: "" });
-  const [sent,    setSent]    = React.useState(false);
-  const [focused, setFocused] = React.useState("");
+  const [form,    setForm]    = useState({ name: "", email: "", message: "" });
+  const [sent,    setSent]    = useState(false);
+  const [focused, setFocused] = useState("");
 
   const handleSubmit = e => {
     e.preventDefault();
@@ -714,12 +714,11 @@ function Footer() {
 /* ═══════════════════════════════════════════
    MAIN LANDING PAGE EXPORT
 ═══════════════════════════════════════════ */
-import React from "react";
 
 export default function Landing() {
-  const [activeSection, setActiveSection] = React.useState("home");
+  const [activeSection, setActiveSection] = useState("home");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const sections = ["home","about","how","contact"];
     const observer = new IntersectionObserver(
       entries => {
@@ -734,7 +733,7 @@ export default function Landing() {
     return () => observer.disconnect();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fadeElements = Array.from(document.querySelectorAll('.fade-element'));
     const fadeObserver = new IntersectionObserver(
       entries => {
