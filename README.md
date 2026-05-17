@@ -248,7 +248,7 @@ User data is stored as plain JSON in `backend/data/users.json`:
 
 ### Backend
 ```bash
-npm run dev    # Start with auto-reload (--watch)
+npm run  dev    # Start with auto-reload (--watch)
 npm start      # Start without auto-reload (production)
 ```
 
