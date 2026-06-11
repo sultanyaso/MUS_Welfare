@@ -135,6 +135,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
   const startDrag = e => {
     dragging.current = true;
     lastPt.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget?.setPointerCapture?.(e.pointerId);
     e.preventDefault();
   };
   const onPointerMove = e => {
@@ -144,31 +145,16 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
     setPan(p => ({ x: p.x - dx, y: p.y - dy }));
     lastPt.current = { x: e.clientX, y: e.clientY };
   };
-  const onPointerUp = () => { dragging.current = false; };
-  const onWheel     = e => { e.preventDefault(); setZoom(z => Math.min(2, Math.max(0.3, z - e.deltaY * 0.001))); };
+  const onPointerUp = e => {
+    dragging.current = false;
+    e.currentTarget?.releasePointerCapture?.(e.pointerId);
+  };
+  const onWheel = e => { e.preventDefault(); setZoom(z => Math.min(2, Math.max(0.3, z - e.deltaY * 0.001))); };
 
   useEffect(() => {
     const el = svgRef.current;
     if (el) el.addEventListener('wheel', onWheel, { passive: false });
     return () => { if (el) el.removeEventListener('wheel', onWheel); };
-  }, []);
-
-  useEffect(() => {
-    const handleMove = e => {
-      if (!dragging.current) return;
-      const dx = e.clientX - lastPt.current.x;
-      const dy = e.clientY - lastPt.current.y;
-      setPan(p => ({ x: p.x - dx, y: p.y - dy }));
-      lastPt.current = { x: e.clientX, y: e.clientY };
-    };
-    const handleUp = () => { dragging.current = false; };
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-    };
   }, []);
 
   useEffect(() => {
@@ -282,7 +268,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
       {/* ── Tree canvas ── */}
       <div ref={canvasRef} style={{ flex:'1 1 0', minHeight:0, background:'white', borderRadius:16, border:'1px solid rgba(0,0,0,0.07)', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', overflow:'auto', position:'relative', cursor:dragging.current?'grabbing':'grab', touchAction:'none', userSelect:'none', MozUserSelect:'none', WebkitUserSelect:'none' }}
-        onMouseDown={startDrag} onPointerDown={startDrag} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={onPointerUp}>
+        onPointerDown={startDrag} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
 
         {loading ? (
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, color:'#8a9e8c' }}>
