@@ -41,8 +41,8 @@ ${tablet ? `
 [style*='gridTemplateColumns:"1fr 340px"'],
 [style*="gridTemplateColumns:'1fr 300px'"],
 [style*="gridTemplateColumns:'300px 1fr'"],
-[style*="gridTemplateColumns:'2fr"],
-[style*='gridTemplateColumns:"2fr'] { grid-template-columns: 1fr !important; }
+[[style*="gridTemplateColumns:'2fr"],
+[style*="gridTemplateColumns:\"2fr"] { grid-template-columns: 1fr !important; }
 ` : ''}
 
 /* GRIDS — auto-fit cards → 2 col then 1 col */
