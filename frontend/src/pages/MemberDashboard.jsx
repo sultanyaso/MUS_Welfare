@@ -497,7 +497,7 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
       </div>
 
       {/* Chart row */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:18, marginBottom:18 }}>
+      <div className="grid-aside-2col-r" style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:18, marginBottom:18 }}>
         <div style={{ background:'white', borderRadius:16, padding:'22px 24px', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
             <div>
@@ -616,8 +616,8 @@ function MembersPage() {
           <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'#8fbc8f', display:'flex', pointerEvents:'none' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </span>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search members…"
-            style={{ padding:'9px 14px 9px 34px', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, fontSize:'0.85rem', outline:'none', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', width:220 }}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search members…" className="search-input-responsive"
+          style={{ padding:'9px 14px 9px 34px', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, fontSize:'0.85rem', outline:'none', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', width:220 }}/>
         </div>
       </div>
       {loading ? (
@@ -1066,7 +1066,7 @@ export default function MemberDashboard() {
       `}</style>
 
       {/* ── SIDEBAR ── */}
-      <aside className="mem-sidebar" style={{ width:sideOpen?230:64, background:'linear-gradient(180deg,#081a0c 0%,#0f2d15 40%,#1a4a24 100%)', display:'flex', flexDirection:'column', transition:'width 0.25s cubic-bezier(0.4,0,0.2,1)', overflow:'hidden', flexShrink:0, position:'sticky', top:0, height:'100vh', boxShadow:'4px 0 24px rgba(0,0,0,0.12)' }}>
+      <aside className="mem-sidebar" style={{ width:sideOpen?230:64, background:'linear-gradient(180deg,#081a0c 0%,#0f2d15 40%,#1a4a24 100%)', display:'flex', flexDirection:'column', transition:'width 0.25s cubic-bezier(0.4,0,0.2,1)', overflow:'hidden', flexShrink:0, position:'sticky', top:0, alignSelf:'stretch', minHeight:'100vh', boxShadow:'4px 0 24px rgba(0,0,0,0.12)' }}>
 
         <div style={{ padding:sideOpen?'22px 18px 18px':'22px 14px 18px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', gap:10, overflow:'hidden' }}>
           <div style={{ width:34, height:34, borderRadius:9, background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
