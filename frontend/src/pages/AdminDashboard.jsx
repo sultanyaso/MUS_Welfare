@@ -174,7 +174,7 @@ function OverviewPage({ stats, onNavigate }) {
       </div>
 
       {/* Chart + recent */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20 }}>
+      <div className="grid-2col-aside" style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20 }}>
 
         {/* Monthly bar chart */}
         <div style={{ background:'white', borderRadius:16, padding:'24px', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)' }}>
@@ -359,8 +359,8 @@ function MembersPage({ initialFilter = 'pending', showToast, onRefreshStats }) {
           <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:'#8fbc8f', display:'flex', pointerEvents:'none' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-            style={{ ...inputStyle, paddingLeft:32, width:200, padding:'8px 14px 8px 32px' }}/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" className="search-input-responsive"
+  style={{ ...inputStyle, paddingLeft:32, width:200, padding:'8px 14px 8px 32px' }}/>
         </div>
       </div>
 
@@ -600,7 +600,7 @@ function PaymentsPage({ showToast }) {
       </div>
 
       {/* Two-column layout: member summary + payment list */}
-      <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:20 }}>
+      <div className="grid-aside-2col" style={{ display:'grid', gridTemplateColumns:'300px 1fr', gap:20 }}>
 
         {/* Member contribution summary */}
         <div style={{ background:'white', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)', overflow:'hidden' }}>
@@ -1304,7 +1304,8 @@ export default function AdminDashboard() {
   const [pageParams, setPageParams] = useState({});
   const [stats,      setStats]      = useState(null);
   const [toast,      setToast]      = useState(null);
-  const [sideOpen,   setSideOpen]   = useState(true);
+  const [sideOpen,   setSideOpen]   = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
+  
 
   const showToast = useCallback((message, type = 'success') => setToast({ message, type }), []);
 
@@ -1343,7 +1344,7 @@ export default function AdminDashboard() {
         display:'flex', flexDirection:'column',
         transition:'width 0.25s cubic-bezier(0.4,0,0.2,1)',
         overflow:'hidden', flexShrink:0,
-        position:'sticky', top:0, height:'100vh',
+        position:'sticky', top:0, alignSelf:'stretch', minHeight:'100vh',
         boxShadow:'4px 0 24px rgba(0,0,0,0.12)',
       }}>
         {/* Logo */}
