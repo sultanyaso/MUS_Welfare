@@ -233,8 +233,8 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
           {/* Search */}
           <div style={{ position:'relative' }}>
             <svg style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#8fbc8f', pointerEvents:'none' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search member…"
-              style={{ ...iSt, width:180, paddingLeft:30, padding:'9px 12px 9px 30px' }}/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search member…" className="search-input-responsive"
+           style={{ ...iSt, width:180, paddingLeft:30, padding:'9px 12px 9px 30px' }}/>
           </div>
           {/* Reset view */}
           <button onClick={() => { setPan({ x:40, y:40 }); setZoom(1); }}
