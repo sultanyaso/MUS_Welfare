@@ -584,7 +584,7 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   MEMBERS PAGE
+   MEMBERS PAGE — Table layout
 ══════════════════════════════════════════════════════ */
 function MembersPage() {
   const [members, setMembers] = useState([]);
@@ -608,6 +608,7 @@ function MembersPage() {
         <h1 style={{ fontFamily:'Fraunces,serif', fontSize:'1.75rem', fontWeight:900, color:'#0f1a10', margin:'0 0 4px' }}>Members Directory</h1>
         <p style={{ color:'#6b7c6d', fontSize:'0.85rem', margin:0 }}>All active members of MUS Welfare Organization.</p>
       </div>
+
       <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap', alignItems:'center' }}>
         {[['all',`All (${members.length})`,'#1a4a24'],['job_holder',`💼 Job Holders (${members.filter(m=>m.memberType==='job_holder').length})`,'#2d6a3f'],['student',`🎓 Students (${members.filter(m=>m.memberType==='student').length})`,'#856404']].map(([key,label,color])=>(
           <button key={key} onClick={() => setFilter(key)} style={{ padding:'8px 18px', borderRadius:50, border:'none', cursor:'pointer', background:filter===key?color:'white', color:filter===key?'white':'#52695a', fontWeight:700, fontSize:'0.8rem', fontFamily:'Sora,sans-serif', boxShadow:filter===key?`0 4px 12px ${color}44`:'0 1px 4px rgba(0,0,0,0.08)', transition:'all 0.2s' }}>{label}</button>
@@ -620,38 +621,57 @@ function MembersPage() {
           style={{ padding:'9px 14px 9px 34px', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, fontSize:'0.85rem', outline:'none', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', width:220 }}/>
         </div>
       </div>
-      {loading ? (
-        <div style={{ padding:60, textAlign:'center', color:'#8a9e8c' }}><div style={{ fontSize:'2rem', marginBottom:8 }}>⏳</div><p style={{ margin:0, fontSize:'0.85rem' }}>Loading…</p></div>
-      ) : filtered.length === 0 ? (
-        <div style={{ padding:60, textAlign:'center', color:'#8a9e8c', background:'white', borderRadius:16 }}><div style={{ fontSize:'2.5rem', marginBottom:8 }}>📭</div><p style={{ margin:0, fontWeight:600 }}>No members found.</p></div>
-      ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:14 }}>
-          {filtered.map(m => (
-            <div key={m._id} style={{ background:'white', borderRadius:16, padding:'18px 20px', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)', transition:'transform 0.15s, box-shadow 0.15s' }}
-              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 6px 24px rgba(0,0,0,0.1)';}}
-              onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)';}}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                <Avatar name={m.fullName} size={44}/>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:'0.9rem', color:'#0f1a10', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.fullName}</div>
-                  <div style={{ fontSize:'0.72rem', color:'#8a9e8c', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.email}</div>
-                </div>
-                <span style={{ fontSize:'0.75rem', padding:'3px 9px', borderRadius:50, background:m.memberType==='job_holder'?'#e8f5eb':'#fff3cd', color:m.memberType==='job_holder'?'#155724':'#856404', fontWeight:700, whiteSpace:'nowrap' }}>
-                  {m.memberType === 'job_holder' ? '💼' : '🎓'}
-                </span>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                {[['Cast / Family',m.castFamily||'—'],['Phone',m.phone||'—'],['Total Contributed',`PKR ${(m.totalContributed||0).toLocaleString()}`],['Member Since',new Date(m.createdAt).toLocaleDateString('en-PK',{month:'short',year:'numeric'})]].map(([label,value])=>(
-                  <div key={label} style={{ background:'#f8faf6', borderRadius:8, padding:'8px 10px' }}>
-                    <div style={{ fontSize:'0.62rem', color:'#8a9e8c', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>{label}</div>
-                    <div style={{ fontSize:'0.82rem', color:'#0f1a10', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{value}</div>
-                  </div>
+
+      <div style={{ background:'white', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)', overflow:'hidden' }}>
+        {loading ? (
+          <div style={{ padding:60, textAlign:'center', color:'#8a9e8c' }}><div style={{ fontSize:'2rem', marginBottom:8 }}>⏳</div><p style={{ margin:0, fontSize:'0.85rem' }}>Loading…</p></div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding:60, textAlign:'center', color:'#8a9e8c' }}><div style={{ fontSize:'2.5rem', marginBottom:8 }}>📭</div><p style={{ margin:0, fontWeight:600 }}>No members found.</p></div>
+        ) : (
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ borderCollapse:'collapse', width:'100%' }}>
+              <thead>
+                <tr style={{ background:'#f8faf6' }}>
+                  {['Member','Type','Cast / Family','Phone','Joined','Status'].map(h=>(
+                    <th key={h} style={{ padding:'14px 24px', textAlign:'left', fontSize:'0.7rem', fontWeight:700, color:'#52695a', letterSpacing:'1px', textTransform:'uppercase', borderBottom:'1px solid #f0f0f0', whiteSpace:'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(m => (
+                  <tr key={m._id} style={{ borderBottom:'1px solid #f8f8f8', transition:'background 0.15s' }}
+                    onMouseEnter={e=>e.currentTarget.style.background='#fafff8'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <td style={{ padding:'14px 24px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                        <Avatar name={m.fullName} size={36}/>
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ fontWeight:700, fontSize:'0.9rem', color:'#0f1a10' }}>{m.fullName}</div>
+                          <div style={{ fontSize:'0.78rem', color:'#8a9e8c' }}>{m.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding:'14px 24px', fontSize:'0.85rem', color:'#52695a', whiteSpace:'nowrap' }}>
+                      {m.memberType === 'job_holder' ? '💼 Job Holder' : '🎓 Student'}
+                    </td>
+                    <td style={{ padding:'14px 24px', fontSize:'0.85rem', color:'#52695a' }}>{m.castFamily || '—'}</td>
+                    <td style={{ padding:'14px 24px', fontSize:'0.85rem', color:'#52695a', whiteSpace:'nowrap' }}>{m.phone || '—'}</td>
+                    <td style={{ padding:'14px 24px', fontSize:'0.85rem', color:'#8a9e8c', whiteSpace:'nowrap' }}>
+                      {new Date(m.createdAt).toLocaleDateString('en-PK',{ day:'numeric', month:'short', year:'numeric' })}
+                    </td>
+                    <td style={{ padding:'14px 24px' }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 14px', borderRadius:50, fontSize:'0.78rem', fontWeight:700, background: m.isActive === false ? '#fde8e8' : '#d1f0da', color: m.isActive === false ? '#721c24' : '#155724' }}>
+                        <span style={{ width:6, height:6, borderRadius:'50%', background: m.isActive === false ? '#c0392b' : '#1a4a24' }}/>
+                        {m.isActive === false ? 'Inactive' : 'Active'}
+                      </span>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
