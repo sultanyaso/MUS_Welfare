@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { memberAPI, announcementAPI } from '../api';
-import FamilyTreePage from './FamilyTreePage'; //family tree page component 
+import FamilyTreePage from './FamilyTreePage';
 
 const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CUR_YEAR  = new Date().getFullYear();
@@ -108,12 +108,11 @@ function DonutChart({ paid, total, size = 120 }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   PAY NOW MODAL — QR code + month selector + submit
+   PAY NOW MODAL — fully responsive & scrollable
 ══════════════════════════════════════════════════════ */
 function PayNowModal({ user, myPayments, onClose, onSuccess }) {
   const minAmount = user?.memberType === 'student' ? 100 : 500;
 
-  // step 0 = choose method, 1 = select month, 2 = pay screen, 3 = confirm
   const [method,     setMethod]     = useState('');
   const [step,       setStep]       = useState(0);
   const [month,      setMonth]      = useState(CUR_MONTH);
@@ -125,10 +124,16 @@ function PayNowModal({ user, myPayments, onClose, onSuccess }) {
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState('');
 
+  /* Lock body scroll when modal is open */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const alreadyVerified = myPayments?.find(p => p.month === month && p.year === year && p.status === 'verified');
   const alreadyPending  = myPayments?.find(p => p.month === month && p.year === year && p.status === 'pending');
 
-  // ── Edit these with your real bank details ──
   const BANK = {
     name:    'Meezan Bank',
     title:   'MUS Welfare Organization',
@@ -165,267 +170,347 @@ function PayNowModal({ user, myPayments, onClose, onSuccess }) {
     } finally { setLoading(false); }
   };
 
-  const lbl  = { display:'block', marginBottom:6, fontSize:'0.7rem', fontWeight:700, color:'#52695a', textTransform:'uppercase', letterSpacing:'0.8px' };
-  const iSt  = { width:'100%', padding:'11px 14px', border:'1.5px solid rgba(26,74,36,0.2)', borderRadius:10, fontSize:'0.88rem', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', outline:'none' };
+  const lbl = { display:'block', marginBottom:6, fontSize:'0.7rem', fontWeight:700, color:'#52695a', textTransform:'uppercase', letterSpacing:'0.8px' };
+  const iSt = { width:'100%', padding:'11px 14px', border:'1.5px solid rgba(26,74,36,0.2)', borderRadius:10, fontSize:'0.88rem', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', outline:'none', boxSizing:'border-box' };
+
   const stepLabels = method === 'account'
     ? ['Select Month', 'Account Details', 'Upload Proof', 'Confirm']
     : ['Select Month', 'Scan QR', 'Confirm'];
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:9000, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background:'white', borderRadius:24, width:'100%', maxWidth:500, maxHeight:'92vh', overflowY:'auto', boxShadow:'0 24px 64px rgba(0,0,0,0.25)', animation:'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both', fontFamily:'Sora,sans-serif', overflow:'hidden' }}>
-        <style>{`@keyframes modalIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}`}</style>
+    <>
+      <style>{`
+        @keyframes modalIn{from{opacity:0;transform:scale(0.94) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes overlayIn{from{opacity:0}to{opacity:1}}
+        .paynow-modal-scroll::-webkit-scrollbar{width:4px}
+        .paynow-modal-scroll::-webkit-scrollbar-track{background:transparent}
+        .paynow-modal-scroll::-webkit-scrollbar-thumb{background:rgba(26,74,36,0.2);border-radius:4px}
+        .paynow-step-label{font-size:0.58rem;font-weight:700;color:#adb5bd;text-transform:uppercase;letter-spacing:0.5px}
+        .paynow-step-label.active{color:#1a4a24}
+        .paynow-step-label.done{color:#2d6a3f}
+        @media(max-width:480px){
+          .paynow-step-label{font-size:0.52rem;letter-spacing:0}
+          .paynow-grid-2{grid-template-columns:1fr!important}
+        }
+      `}</style>
 
-        {/* Header */}
-        <div style={{ background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', padding:'20px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div>
-            <div style={{ fontFamily:'Fraunces,serif', fontWeight:900, fontSize:'1.15rem', color:'white' }}>💳 Pay Now</div>
-            <div style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.55)', marginTop:2 }}>
-              {step === 0 ? 'Choose payment method' : stepLabels[step - 1]}
+      {/* Overlay */}
+      <div
+        onClick={e => e.target === e.currentTarget && onClose()}
+        style={{
+          position:'fixed', inset:0, zIndex:9000,
+          background:'rgba(0,0,0,0.6)',
+          backdropFilter:'blur(5px)',
+          display:'flex',
+          alignItems:'center',
+          justifyContent:'center',
+          padding:'16px',
+          animation:'overlayIn 0.2s ease both',
+        }}
+      >
+        {/* Modal card */}
+        <div style={{
+          background:'white',
+          borderRadius:'20px',
+          width:'100%',
+          maxWidth:520,
+          maxHeight:'92dvh',             /* leave room for top safe area */
+          display:'flex',
+          flexDirection:'column',        /* header fixed, body scrolls */
+          boxShadow:'0 -8px 48px rgba(0,0,0,0.28)',
+          animation:'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both',
+          fontFamily:'Sora,sans-serif',
+          overflow:'hidden',
+        }}
+        /* On wider screens: centered card with rounded corners everywhere */
+        className="paynow-modal-card"
+        >
+          <style>{`
+            @media(min-width:560px){
+              .paynow-modal-card{
+                max-height:88dvh!important;
+              }
+            }
+          `}</style>
+
+          {/* ── Fixed Header ── */}
+          <div style={{
+            background:'linear-gradient(135deg,#1a4a24,#2d6a3f)',
+            padding:'18px 20px 16px',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            flexShrink:0,
+          }}>
+            {/* Drag handle (mobile only) */}
+            <div style={{ position:'absolute', top:8, left:'50%', transform:'translateX(-50%)', width:36, height:4, borderRadius:2, background:'rgba(255,255,255,0.25)' }}/>
+            <div>
+              <div style={{ fontFamily:'Fraunces,serif', fontWeight:900, fontSize:'1.1rem', color:'white', display:'flex', alignItems:'center', gap:8 }}>
+                💳 Pay Now
+              </div>
+              <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.55)', marginTop:2 }}>
+                {step === 0 ? 'Choose payment method' : stepLabels[step - 1]}
+              </div>
             </div>
+            <button onClick={onClose} style={{
+              background:'rgba(255,255,255,0.15)', border:'none', borderRadius:8,
+              width:32, height:32, cursor:'pointer', color:'white', fontSize:'1.1rem',
+              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+            }}>×</button>
           </div>
-          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:8, width:32, height:32, cursor:'pointer', color:'white', fontSize:'1.1rem', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
-        </div>
 
-        {/* Step progress */}
-        {step > 0 && (
-          <div style={{ display:'flex' }}>
-            {stepLabels.map((label, i) => (
-              <div key={label} style={{ flex:1, padding:'9px 0', textAlign:'center', background: step > i+1 ? '#d1f0da' : step === i+1 ? '#e8f5eb' : '#f8faf6', borderBottom: step === i+1 ? '3px solid #1a4a24' : '3px solid transparent', transition:'all 0.2s' }}>
-                <div style={{ fontSize:'0.6rem', fontWeight:700, color: step >= i+1 ? '#1a4a24' : '#adb5bd', textTransform:'uppercase', letterSpacing:'0.5px' }}>
-                  {step > i+1 ? '✓ ' : `${i+1}. `}{label}
+          {/* ── Fixed Step Progress ── */}
+          {step > 0 && (
+            <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid #f0f0f0' }}>
+              {stepLabels.map((label, i) => (
+                <div key={label} style={{
+                  flex:1, padding:'8px 4px', textAlign:'center',
+                  background: step > i+1 ? '#d1f0da' : step === i+1 ? '#e8f5eb' : '#f8faf6',
+                  borderBottom: step === i+1 ? '3px solid #1a4a24' : '3px solid transparent',
+                  transition:'all 0.2s',
+                }}>
+                  <span className={`paynow-step-label${step > i+1 ? ' done' : step === i+1 ? ' active' : ''}`}>
+                    {step > i+1 ? '✓ ' : `${i+1}. `}{label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Scrollable Body ── */}
+          <div
+            className="paynow-modal-scroll"
+            style={{
+              flex:1,
+              overflowY:'auto',
+              overflowX:'hidden',
+              padding:'20px 20px 28px',
+              WebkitOverflowScrolling:'touch',
+            }}
+          >
+
+            {/* ── STEP 0: Choose method ── */}
+            {step === 0 && (
+              <div>
+                <p style={{ margin:'0 0 18px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>How would you like to pay your monthly contribution?</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+
+                  {/* QR Method */}
+                  <button onClick={() => { setMethod('qr'); setStep(1); }}
+                    style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:14, border:'2px solid rgba(26,74,36,0.18)', background:'#f8faf6', cursor:'pointer', textAlign:'left', transition:'all 0.18s', width:'100%' }}
+                    onMouseEnter={e => { e.currentTarget.style.border='2px solid #2d6a3f'; e.currentTarget.style.background='#e8f5eb'; }}
+                    onMouseLeave={e => { e.currentTarget.style.border='2px solid rgba(26,74,36,0.18)'; e.currentTarget.style.background='#f8faf6'; }}>
+                    <div style={{ width:50, height:50, borderRadius:12, background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/>
+                        <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, fontSize:'0.93rem', color:'#0f1a10', marginBottom:3 }}>Scan QR Code</div>
+                      <div style={{ fontSize:'0.76rem', color:'#6b7c6d', lineHeight:1.5 }}>Scan with your banking app and pay directly.</div>
+                    </div>
+                    <span style={{ color:'#2d6a3f', fontSize:'1.1rem', flexShrink:0 }}>→</span>
+                  </button>
+
+                  {/* Account Transfer */}
+                  <button onClick={() => { setMethod('account'); setStep(1); }}
+                    style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px', borderRadius:14, border:'2px solid rgba(201,151,58,0.25)', background:'#fffdf5', cursor:'pointer', textAlign:'left', transition:'all 0.18s', width:'100%' }}
+                    onMouseEnter={e => { e.currentTarget.style.border='2px solid #c9973a'; e.currentTarget.style.background='#fff8e6'; }}
+                    onMouseLeave={e => { e.currentTarget.style.border='2px solid rgba(201,151,58,0.25)'; e.currentTarget.style.background='#fffdf5'; }}>
+                    <div style={{ width:50, height:50, borderRadius:12, background:'linear-gradient(135deg,#c9973a,#e8b84b)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+                        <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, fontSize:'0.93rem', color:'#0f1a10', marginBottom:3 }}>Bank Account Transfer</div>
+                      <div style={{ fontSize:'0.76rem', color:'#6b7c6d', lineHeight:1.5 }}>Transfer to our account and upload a screenshot as proof.</div>
+                    </div>
+                    <span style={{ color:'#c9973a', fontSize:'1.1rem', flexShrink:0 }}>→</span>
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        <div style={{ padding:'22px 24px', overflowY:'auto' }}>
+            {/* ── STEP 1: Select month & amount ── */}
+            {step === 1 && (
+              <div>
+                <p style={{ margin:'0 0 16px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>Select the month you are paying for.</p>
+                <div className="paynow-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+                  <div>
+                    <label style={lbl}>Month</label>
+                    <select value={month} onChange={e => setMonth(Number(e.target.value))} style={iSt}>
+                      {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Year</label>
+                    <select value={year} onChange={e => setYear(Number(e.target.value))} style={iSt}>
+                      {[CUR_YEAR, CUR_YEAR-1].map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  <label style={lbl}>Amount (PKR) — min PKR {minAmount}</label>
+                  <input type="number" value={amount} min={minAmount} onChange={e => setAmount(e.target.value)} style={iSt}/>
+                </div>
+                <div style={{ marginBottom:18 }}>
+                  <label style={lbl}>Note (optional)</label>
+                  <input value={note} onChange={e => setNote(e.target.value)}
+                    placeholder={method === 'account' ? 'e.g. Transferred via Meezan Bank' : 'e.g. via JazzCash'} style={iSt}/>
+                </div>
+                {alreadyVerified && (
+                  <div style={{ padding:'11px 14px', background:'#d1f0da', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#155724', fontWeight:600 }}>✅ Already paid for {MONTHS[month-1]} {year}.</div>
+                )}
+                {alreadyPending && !alreadyVerified && (
+                  <div style={{ padding:'11px 14px', background:'#fff3cd', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#856404', fontWeight:600 }}>⏳ Pending submission already exists for {MONTHS[month-1]} {year}.</div>
+                )}
+                <div style={{ display:'flex', gap:10 }}>
+                  <button onClick={() => { setStep(0); setMethod(''); }} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
+                  <button
+                    disabled={!!alreadyVerified || !!alreadyPending || Number(amount) < minAmount}
+                    onClick={() => setStep(2)}
+                    style={{ flex:2, padding:'12px', borderRadius:10, border:'none', fontWeight:700, fontSize:'0.88rem', fontFamily:'Sora,sans-serif', color:'white', cursor:(alreadyVerified||alreadyPending||Number(amount)<minAmount)?'not-allowed':'pointer', background:(alreadyVerified||alreadyPending||Number(amount)<minAmount)?'#ccc':method==='account'?'linear-gradient(135deg,#c9973a,#e8b84b)':'linear-gradient(135deg,#1a4a24,#2d6a3f)' }}>
+                    {method === 'account' ? 'View Account Details →' : 'Scan QR Code →'}
+                  </button>
+                </div>
+              </div>
+            )}
 
-          {/* ── STEP 0: Choose method ── */}
-          {step === 0 && (
-            <div>
-              <p style={{ margin:'0 0 20px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>How would you like to pay your monthly contribution?</p>
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-
-                {/* QR Method */}
-                <button onClick={() => { setMethod('qr'); setStep(1); }}
-                  style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 20px', borderRadius:14, border:'2px solid rgba(26,74,36,0.18)', background:'#f8faf6', cursor:'pointer', textAlign:'left', transition:'all 0.18s' }}
-                  onMouseEnter={e => { e.currentTarget.style.border='2px solid #2d6a3f'; e.currentTarget.style.background='#e8f5eb'; }}
-                  onMouseLeave={e => { e.currentTarget.style.border='2px solid rgba(26,74,36,0.18)'; e.currentTarget.style.background='#f8faf6'; }}>
-                  <div style={{ width:52, height:52, borderRadius:12, background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+            {/* ── STEP 2 (QR): QR code ── */}
+            {step === 2 && method === 'qr' && (
+              <div style={{ textAlign:'center' }}>
+                <p style={{ margin:'0 0 16px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>
+                  Scan the QR code and pay exactly <strong>PKR {Number(amount).toLocaleString()}</strong> for <strong>{MONTHS[month-1]} {year}</strong>.
+                </p>
+                <div style={{ display:'inline-block', padding:14, background:'white', borderRadius:16, border:'2px solid rgba(26,74,36,0.15)', boxShadow:'0 4px 20px rgba(0,0,0,0.08)', marginBottom:14 }}>
+                  <img src="/qr-code.png" alt="Bank QR Code" style={{ width:180, height:180, objectFit:'contain', display:'block' }}
+                    onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}/>
+                  <div style={{ width:180, height:180, display:'none', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#f8faf6', borderRadius:8, gap:8 }}>
+                    <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#1a4a24" strokeWidth="1.5">
                       <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
                       <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/>
                       <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/>
                     </svg>
+                    <p style={{ margin:0, fontSize:'0.72rem', color:'#8a9e8c', fontWeight:600 }}>Place qr-code.png in<br/>frontend/public/</p>
                   </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontWeight:700, fontSize:'0.95rem', color:'#0f1a10', marginBottom:3 }}>Scan QR Code</div>
-                    <div style={{ fontSize:'0.78rem', color:'#6b7c6d', lineHeight:1.5 }}>Scan the QR code with your banking app and pay directly.</div>
-                  </div>
-                  <span style={{ color:'#2d6a3f', fontSize:'1.2rem' }}>→</span>
-                </button>
-
-                {/* Account Transfer Method */}
-                <button onClick={() => { setMethod('account'); setStep(1); }}
-                  style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 20px', borderRadius:14, border:'2px solid rgba(201,151,58,0.25)', background:'#fffdf5', cursor:'pointer', textAlign:'left', transition:'all 0.18s' }}
-                  onMouseEnter={e => { e.currentTarget.style.border='2px solid #c9973a'; e.currentTarget.style.background='#fff8e6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.border='2px solid rgba(201,151,58,0.25)'; e.currentTarget.style.background='#fffdf5'; }}>
-                  <div style={{ width:52, height:52, borderRadius:12, background:'linear-gradient(135deg,#c9973a,#e8b84b)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
-                      <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontWeight:700, fontSize:'0.95rem', color:'#0f1a10', marginBottom:3 }}>Bank Account Transfer</div>
-                    <div style={{ fontSize:'0.78rem', color:'#6b7c6d', lineHeight:1.5 }}>Transfer to our bank account and upload payment screenshot as proof.</div>
-                  </div>
-                  <span style={{ color:'#c9973a', fontSize:'1.2rem' }}>→</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 1: Select month & amount (both methods) ── */}
-          {step === 1 && (
-            <div>
-              <p style={{ margin:'0 0 16px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>Select the month you are paying for.</p>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-                <div>
-                  <label style={lbl}>Month</label>
-                  <select value={month} onChange={e => setMonth(Number(e.target.value))} style={iSt}>
-                    {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
-                  </select>
                 </div>
-                <div>
-                  <label style={lbl}>Year</label>
-                  <select value={year} onChange={e => setYear(Number(e.target.value))} style={iSt}>
-                    {[CUR_YEAR, CUR_YEAR-1].map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                <div style={{ background:'#e8f5eb', borderRadius:12, padding:'12px 16px', marginBottom:14, display:'inline-block' }}>
+                  <div style={{ fontSize:'0.68rem', color:'#52695a', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Pay exactly</div>
+                  <div style={{ fontFamily:'Fraunces,serif', fontSize:'1.5rem', fontWeight:900, color:'#1a4a24' }}>PKR {Number(amount).toLocaleString()}</div>
+                  <div style={{ fontSize:'0.75rem', color:'#52695a', marginTop:2 }}>{MONTHS[month-1]} {year}</div>
+                </div>
+                <div style={{ fontSize:'0.78rem', color:'#856404', background:'#fff3cd', borderRadius:10, padding:'10px 14px', marginBottom:20, textAlign:'left' }}>
+                  ⚠️ After paying, tap <strong>"I've Paid"</strong> to notify the admin for verification.
+                </div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button onClick={() => setStep(1)} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
+                  <button onClick={() => setStep(3)} style={{ flex:2, padding:'12px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>I've Paid ✓</button>
                 </div>
               </div>
-              <div style={{ marginBottom:14 }}>
-                <label style={lbl}>Amount (PKR) — min PKR {minAmount}</label>
-                <input type="number" value={amount} min={minAmount} onChange={e => setAmount(e.target.value)} style={iSt}/>
-              </div>
-              <div style={{ marginBottom:18 }}>
-                <label style={lbl}>Note (optional)</label>
-                <input value={note} onChange={e => setNote(e.target.value)}
-                  placeholder={method === 'account' ? 'e.g. Transferred via Meezan Bank' : 'e.g. via JazzCash'} style={iSt}/>
-              </div>
-              {alreadyVerified && (
-                <div style={{ padding:'11px 14px', background:'#d1f0da', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#155724', fontWeight:600 }}>✅ Already paid for {MONTHS[month-1]} {year}.</div>
-              )}
-              {alreadyPending && !alreadyVerified && (
-                <div style={{ padding:'11px 14px', background:'#fff3cd', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#856404', fontWeight:600 }}>⏳ Pending submission already exists for {MONTHS[month-1]} {year}.</div>
-              )}
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => { setStep(0); setMethod(''); }} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
-                <button
-                  disabled={!!alreadyVerified || !!alreadyPending || Number(amount) < minAmount}
-                  onClick={() => setStep(2)}
-                  style={{ flex:2, padding:'12px', borderRadius:10, border:'none', fontWeight:700, fontSize:'0.92rem', fontFamily:'Sora,sans-serif', color:'white', cursor:(alreadyVerified||alreadyPending||Number(amount)<minAmount)?'not-allowed':'pointer', background:(alreadyVerified||alreadyPending||Number(amount)<minAmount)?'#ccc':method==='account'?'linear-gradient(135deg,#c9973a,#e8b84b)':'linear-gradient(135deg,#1a4a24,#2d6a3f)' }}>
-                  {method === 'account' ? 'View Account Details →' : 'Scan QR Code →'}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* ── STEP 2 (QR): Show QR code ── */}
-          {step === 2 && method === 'qr' && (
-            <div style={{ textAlign:'center' }}>
-              <p style={{ margin:'0 0 16px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>
-                Scan the QR code and pay exactly <strong>PKR {Number(amount).toLocaleString()}</strong> for <strong>{MONTHS[month-1]} {year}</strong>.
-              </p>
-              <div style={{ display:'inline-block', padding:14, background:'white', borderRadius:16, border:'2px solid rgba(26,74,36,0.15)', boxShadow:'0 4px 20px rgba(0,0,0,0.08)', marginBottom:14 }}>
-                <img src="/qr-code.png" alt="Bank QR Code" style={{ width:200, height:200, objectFit:'contain', display:'block' }}
-                  onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}/>
-                <div style={{ width:200, height:200, display:'none', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#f8faf6', borderRadius:8, gap:8 }}>
-                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1a4a24" strokeWidth="1.5">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/>
-                    <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="19" y="19" width="2" height="2"/>
-                  </svg>
-                  <p style={{ margin:0, fontSize:'0.72rem', color:'#8a9e8c', fontWeight:600 }}>Place qr-code.png in<br/>frontend/public/</p>
-                </div>
-              </div>
-              <div style={{ background:'#e8f5eb', borderRadius:12, padding:'12px 16px', marginBottom:14, display:'inline-block' }}>
-                <div style={{ fontSize:'0.68rem', color:'#52695a', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Pay exactly</div>
-                <div style={{ fontFamily:'Fraunces,serif', fontSize:'1.5rem', fontWeight:900, color:'#1a4a24' }}>PKR {Number(amount).toLocaleString()}</div>
-                <div style={{ fontSize:'0.75rem', color:'#52695a', marginTop:2 }}>{MONTHS[month-1]} {year}</div>
-              </div>
-              <div style={{ fontSize:'0.78rem', color:'#856404', background:'#fff3cd', borderRadius:10, padding:'10px 14px', marginBottom:18, textAlign:'left' }}>
-                ⚠️ After paying, click <strong>"I've Paid"</strong> to notify the admin for verification.
-              </div>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setStep(1)} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
-                <button onClick={() => setStep(3)} style={{ flex:2, padding:'12px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:'0.92rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>I've Paid ✓</button>
-              </div>
-            </div>
-          )}
+            {/* ── STEP 2 (Account): Account details + upload ── */}
+            {step === 2 && method === 'account' && (
+              <div>
+                <p style={{ margin:'0 0 14px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>
+                  Transfer <strong>PKR {Number(amount).toLocaleString()}</strong> to the account below, then upload your payment screenshot.
+                </p>
 
-          {/* ── STEP 2 (Account): Account details + screenshot upload ── */}
-          {step === 2 && method === 'account' && (
-            <div>
-              <p style={{ margin:'0 0 16px', fontSize:'0.88rem', color:'#52695a', lineHeight:1.6 }}>
-                Transfer <strong>PKR {Number(amount).toLocaleString()}</strong> to the account below, then upload your payment screenshot.
-              </p>
-
-              {/* Account card */}
-              <div style={{ background:'linear-gradient(135deg,#0f2d15,#1a4a24)', borderRadius:16, padding:'18px 20px', marginBottom:18 }}>
-                <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.45)', letterSpacing:'2px', textTransform:'uppercase', marginBottom:12 }}>Bank Account Details</div>
-                {[['Bank', BANK.name],['Account Title', BANK.title],['Account No.', BANK.account],['IBAN', BANK.iban]].map(([label, val]) => (
-                  <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-                    <span style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.45)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</span>
-                    <span style={{ fontSize:'0.85rem', color:'white', fontWeight:700, fontFamily:label==='Account No.'||label==='IBAN'?'monospace':'Sora,sans-serif' }}>{val}</span>
-                  </div>
-                ))}
-                <div style={{ marginTop:12, padding:'10px 14px', background:'rgba(201,151,58,0.18)', borderRadius:10, border:'1px solid rgba(201,151,58,0.3)' }}>
-                  <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.5)', marginBottom:3 }}>Amount to Transfer</div>
-                  <div style={{ fontFamily:'Fraunces,serif', fontSize:'1.4rem', fontWeight:900, color:'#c9973a' }}>PKR {Number(amount).toLocaleString()}</div>
-                </div>
-              </div>
-
-              {/* Screenshot upload */}
-              <div style={{ marginBottom:16 }}>
-                <label style={lbl}>Upload Payment Screenshot *</label>
-                <div style={{ border:`2px dashed ${preview?'#2d6a3f':'rgba(26,74,36,0.25)'}`, borderRadius:12, overflow:'hidden', transition:'border-color 0.2s', position:'relative' }}>
-                  {preview ? (
-                    <div style={{ position:'relative' }}>
-                      <img src={preview} alt="proof" style={{ width:'100%', maxHeight:200, objectFit:'contain', display:'block' }}/>
-                      <button onClick={() => { setScreenshot(null); setPreview(''); }}
-                        style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:'50%', width:28, height:28, color:'white', cursor:'pointer', fontSize:'0.9rem', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                {/* Account card */}
+                <div style={{ background:'linear-gradient(135deg,#0f2d15,#1a4a24)', borderRadius:16, padding:'16px 18px', marginBottom:16 }}>
+                  <div style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.45)', letterSpacing:'2px', textTransform:'uppercase', marginBottom:10 }}>Bank Account Details</div>
+                  {[['Bank', BANK.name],['Account Title', BANK.title],['Account No.', BANK.account],['IBAN', BANK.iban]].map(([label, val]) => (
+                    <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.08)', gap:8, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.45)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>{label}</span>
+                      <span style={{ fontSize:'0.83rem', color:'white', fontWeight:700, fontFamily:label==='Account No.'||label==='IBAN'?'monospace':'Sora,sans-serif', wordBreak:'break-all', textAlign:'right' }}>{val}</span>
                     </div>
-                  ) : (
-                    <label htmlFor="ss-input" style={{ cursor:'pointer', display:'block', padding:'28px 20px', textAlign:'center', background:'#f8faf6' }}>
-                      <div style={{ fontSize:'2rem', marginBottom:8 }}>📸</div>
-                      <div style={{ fontWeight:700, fontSize:'0.88rem', color:'#1a4a24', marginBottom:4 }}>Click to upload screenshot</div>
-                      <div style={{ fontSize:'0.75rem', color:'#8a9e8c' }}>JPG, PNG or WEBP — max 5 MB</div>
-                    </label>
-                  )}
-                  <input id="ss-input" type="file" accept="image/*" onChange={handleFileChange}
-                    style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer', display:preview?'none':'block' }}/>
+                  ))}
+                  <div style={{ marginTop:12, padding:'10px 14px', background:'rgba(201,151,58,0.18)', borderRadius:10, border:'1px solid rgba(201,151,58,0.3)' }}>
+                    <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.5)', marginBottom:3 }}>Amount to Transfer</div>
+                    <div style={{ fontFamily:'Fraunces,serif', fontSize:'1.4rem', fontWeight:900, color:'#c9973a' }}>PKR {Number(amount).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                {/* Screenshot upload */}
+                <div style={{ marginBottom:16 }}>
+                  <label style={lbl}>Upload Payment Screenshot *</label>
+                  <div style={{ border:`2px dashed ${preview?'#2d6a3f':'rgba(26,74,36,0.25)'}`, borderRadius:12, overflow:'hidden', transition:'border-color 0.2s', position:'relative' }}>
+                    {preview ? (
+                      <div style={{ position:'relative' }}>
+                        <img src={preview} alt="proof" style={{ width:'100%', maxHeight:200, objectFit:'contain', display:'block' }}/>
+                        <button onClick={() => { setScreenshot(null); setPreview(''); }}
+                          style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:'50%', width:28, height:28, color:'white', cursor:'pointer', fontSize:'0.9rem', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                      </div>
+                    ) : (
+                      <label htmlFor="ss-input" style={{ cursor:'pointer', display:'block', padding:'26px 16px', textAlign:'center', background:'#f8faf6' }}>
+                        <div style={{ fontSize:'2rem', marginBottom:8 }}>📸</div>
+                        <div style={{ fontWeight:700, fontSize:'0.88rem', color:'#1a4a24', marginBottom:4 }}>Tap to upload screenshot</div>
+                        <div style={{ fontSize:'0.75rem', color:'#8a9e8c' }}>JPG, PNG or WEBP — max 5 MB</div>
+                      </label>
+                    )}
+                    <input id="ss-input" type="file" accept="image/*" onChange={handleFileChange}
+                      style={{ position:'absolute', inset:0, opacity:0, cursor:'pointer', display:preview?'none':'block' }}/>
+                  </div>
+                </div>
+
+                {error && <div style={{ padding:'10px 13px', background:'#fde8e8', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#c0392b', fontWeight:600 }}>⚠️ {error}</div>}
+
+                <div style={{ display:'flex', gap:10 }}>
+                  <button onClick={() => setStep(1)} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
+                  <button disabled={!screenshot} onClick={() => { setError(''); setStep(3); }}
+                    style={{ flex:2, padding:'12px', borderRadius:10, border:'none', fontWeight:700, fontSize:'0.88rem', cursor:screenshot?'pointer':'not-allowed', fontFamily:'Sora,sans-serif', color:'white', background:screenshot?'linear-gradient(135deg,#c9973a,#e8b84b)':'#ccc' }}>
+                    Continue →
+                  </button>
                 </div>
               </div>
+            )}
 
-              {error && <div style={{ padding:'10px 13px', background:'#fde8e8', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#c0392b', fontWeight:600 }}>⚠️ {error}</div>}
+            {/* ── STEP 3: Review & Submit ── */}
+            {step === 3 && (
+              <div>
+                <div style={{ textAlign:'center', marginBottom:16 }}>
+                  <div style={{ fontSize:'2.2rem', marginBottom:6 }}>{method === 'account' ? '🏦' : '🎉'}</div>
+                  <p style={{ margin:0, fontSize:'0.88rem', color:'#52695a', lineHeight:1.7 }}>Review your details and tap <strong>Submit</strong> to notify the admin.</p>
+                </div>
+                <div style={{ background:'#f8faf6', borderRadius:14, padding:'14px 16px', marginBottom:14 }}>
+                  {[
+                    ['Month',  `${MONTHS[month-1]} ${year}`],
+                    ['Amount', `PKR ${Number(amount).toLocaleString()}`],
+                    ['Method', method === 'account' ? '🏦 Bank Transfer' : '📱 QR Code'],
+                    ['Member', user?.fullName],
+                    ['Type',   user?.memberType === 'student' ? '🎓 Student' : '💼 Job Holder'],
+                    ['Note',   note || '—'],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:'1px solid rgba(0,0,0,0.05)', gap:8 }}>
+                      <span style={{ fontSize:'0.73rem', color:'#8a9e8c', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>{label}</span>
+                      <span style={{ fontSize:'0.85rem', color:'#0f1a10', fontWeight:600, textAlign:'right', wordBreak:'break-word' }}>{val}</span>
+                    </div>
+                  ))}
+                  {preview && (
+                    <div style={{ paddingTop:10, marginTop:4 }}>
+                      <div style={{ fontSize:'0.7rem', color:'#8a9e8c', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:6 }}>Screenshot</div>
+                      <img src={preview} alt="proof" style={{ width:'100%', maxHeight:120, objectFit:'contain', borderRadius:8, border:'1px solid rgba(0,0,0,0.08)' }}/>
+                    </div>
+                  )}
+                </div>
+                {error && <div style={{ padding:'10px 13px', background:'#fde8e8', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#c0392b', fontWeight:600 }}>⚠️ {error}</div>}
+                <div style={{ background:'#e8f5eb', borderRadius:10, padding:'10px 14px', marginBottom:18, fontSize:'0.78rem', color:'#155724' }}>
+                  ℹ️ Shows as <strong>Pending</strong> until admin verifies — usually within a few hours.
+                </div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button onClick={() => setStep(2)} disabled={loading} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
+                  <button onClick={handleSubmit} disabled={loading} style={{ flex:2, padding:'12px', background:loading?'#ccc':'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:'0.88rem', cursor:loading?'not-allowed':'pointer', fontFamily:'Sora,sans-serif' }}>
+                    {loading ? 'Submitting…' : 'Submit Payment ✓'}
+                  </button>
+                </div>
+              </div>
+            )}
 
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setStep(1)} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
-                <button disabled={!screenshot} onClick={() => { setError(''); setStep(3); }}
-                  style={{ flex:2, padding:'12px', borderRadius:10, border:'none', fontWeight:700, fontSize:'0.92rem', cursor:screenshot?'pointer':'not-allowed', fontFamily:'Sora,sans-serif', color:'white', background:screenshot?'linear-gradient(135deg,#c9973a,#e8b84b)':'#ccc' }}>
-                  Continue →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 3: Review & Submit (both methods) ── */}
-          {step === 3 && (
-            <div>
-              <div style={{ textAlign:'center', marginBottom:18 }}>
-                <div style={{ fontSize:'2.5rem', marginBottom:6 }}>{method === 'account' ? '🏦' : '🎉'}</div>
-                <p style={{ margin:0, fontSize:'0.88rem', color:'#52695a', lineHeight:1.7 }}>Review your details and click <strong>Submit</strong> to notify the admin.</p>
-              </div>
-              <div style={{ background:'#f8faf6', borderRadius:14, padding:'16px 18px', marginBottom:16 }}>
-                {[
-                  ['Month',  `${MONTHS[month-1]} ${year}`],
-                  ['Amount', `PKR ${Number(amount).toLocaleString()}`],
-                  ['Method', method === 'account' ? '🏦 Bank Transfer' : '📱 QR Code'],
-                  ['Member', user?.fullName],
-                  ['Type',   user?.memberType === 'student' ? '🎓 Student' : '💼 Job Holder'],
-                  ['Note',   note || '—'],
-                ].map(([label, val]) => (
-                  <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-                    <span style={{ fontSize:'0.75rem', color:'#8a9e8c', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px' }}>{label}</span>
-                    <span style={{ fontSize:'0.86rem', color:'#0f1a10', fontWeight:600 }}>{val}</span>
-                  </div>
-                ))}
-                {preview && (
-                  <div style={{ paddingTop:10, marginTop:4 }}>
-                    <div style={{ fontSize:'0.7rem', color:'#8a9e8c', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:6 }}>Screenshot</div>
-                    <img src={preview} alt="proof" style={{ width:'100%', maxHeight:130, objectFit:'contain', borderRadius:8, border:'1px solid rgba(0,0,0,0.08)' }}/>
-                  </div>
-                )}
-              </div>
-              {error && <div style={{ padding:'10px 13px', background:'#fde8e8', borderRadius:10, marginBottom:14, fontSize:'0.82rem', color:'#c0392b', fontWeight:600 }}>⚠️ {error}</div>}
-              <div style={{ background:'#e8f5eb', borderRadius:10, padding:'10px 14px', marginBottom:18, fontSize:'0.78rem', color:'#155724' }}>
-                ℹ️ Shows as <strong>Pending</strong> until admin verifies — usually within a few hours.
-              </div>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setStep(2)} disabled={loading} style={{ flex:1, padding:'12px', background:'#f8faf6', border:'1.5px solid rgba(26,74,36,0.15)', borderRadius:10, color:'#52695a', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>← Back</button>
-                <button onClick={handleSubmit} disabled={loading} style={{ flex:2, padding:'12px', background:loading?'#ccc':'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:10, fontWeight:700, fontSize:'0.92rem', cursor:loading?'not-allowed':'pointer', fontFamily:'Sora,sans-serif' }}>
-                  {loading ? 'Submitting…' : 'Submit Payment ✓'}
-                </button>
-              </div>
-            </div>
-          )}
-
+          </div>{/* end scrollable body */}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -456,7 +541,6 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
             {new Date().toLocaleDateString('en-PK',{ weekday:'long', year:'numeric', month:'long', day:'numeric' })}
           </p>
         </div>
-        {/* Pay Now CTA on overview */}
         <button onClick={onPayNow} style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 22px',
           background:'linear-gradient(135deg,#c9973a,#e8b84b)', color:'#0f1a10', border:'none', borderRadius:12,
           fontWeight:700, fontSize:'0.88rem', cursor:'pointer', fontFamily:'Sora,sans-serif',
@@ -470,7 +554,6 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
         </button>
       </div>
 
-      {/* Pending badge */}
       {stats?.myPending > 0 && (
         <div style={{ background:'#fff3cd', border:'1px solid #f0ad0044', borderRadius:12, padding:'12px 16px', marginBottom:20,
           display:'flex', alignItems:'center', gap:10, fontSize:'0.85rem', color:'#856404' }}>
@@ -479,7 +562,6 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
         </div>
       )}
 
-      {/* KPI cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:14, marginBottom:24 }}>
         {kpis.map(({ label, value, icon, color, bg, action }) => (
           <div key={label} onClick={action} style={{ background:'white', borderRadius:16, padding:'18px 20px',
@@ -496,7 +578,6 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
         ))}
       </div>
 
-      {/* Chart row */}
       <div className="grid-aside-2col-r" style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:18, marginBottom:18 }}>
         <div style={{ background:'white', borderRadius:16, padding:'22px 24px', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
@@ -539,7 +620,6 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
         </div>
       </div>
 
-      {/* Recent payments */}
       <div style={{ background:'white', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)', overflow:'hidden' }}>
         <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <h3 style={{ fontFamily:'Fraunces,serif', fontSize:'0.95rem', fontWeight:700, color:'#0f1a10', margin:0 }}>My Recent Payments</h3>
@@ -584,7 +664,7 @@ function OverviewPage({ stats, myPayments, onNavigate, onPayNow }) {
 }
 
 /* ══════════════════════════════════════════════════════
-   MEMBERS PAGE — Table layout
+   MEMBERS PAGE
 ══════════════════════════════════════════════════════ */
 function MembersPage() {
   const [members, setMembers] = useState([]);
@@ -725,7 +805,6 @@ function PaymentsPage({ myPayments, loadingMine, showToast, onPayNow }) {
         </div>
       </div>
 
-      {/* Pending banner */}
       {pendingPayments.length > 0 && (
         <div style={{ background:'#fff3cd', border:'1px solid #f0ad0044', borderRadius:12, padding:'12px 16px', marginBottom:20, fontSize:'0.85rem', color:'#856404', display:'flex', alignItems:'center', gap:8 }}>
           <span>⏳</span>
@@ -733,7 +812,6 @@ function PaymentsPage({ myPayments, loadingMine, showToast, onPayNow }) {
         </div>
       )}
 
-      {/* Tabs */}
       <div style={{ display:'flex', gap:4, marginBottom:20, background:'white', borderRadius:12, padding:4, width:'fit-content', boxShadow:'0 2px 8px rgba(0,0,0,0.06)' }}>
         {[['mine','My Payments'],['org','Organisation']].map(([key,label])=>(
           <button key={key} onClick={()=>setTab(key)} style={{ padding:'9px 22px', borderRadius:9, border:'none', cursor:'pointer', background:tab===key?'linear-gradient(135deg,#1a4a24,#2d6a3f)':'transparent', color:tab===key?'white':'#52695a', fontWeight:700, fontSize:'0.83rem', fontFamily:'Sora,sans-serif', transition:'all 0.2s', boxShadow:tab===key?'0 2px 8px rgba(26,74,36,0.25)':'none' }}>{label}</button>
@@ -761,7 +839,6 @@ function PaymentsPage({ myPayments, loadingMine, showToast, onPayNow }) {
             </div>
           </div>
 
-          {/* 12-month grid */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))', gap:10, marginBottom:20 }}>
             {myGrid.map(({ month, label, verified, pending }) => {
               const isCur  = month === CUR_MONTH && selYear === CUR_YEAR;
@@ -790,7 +867,6 @@ function PaymentsPage({ myPayments, loadingMine, showToast, onPayNow }) {
             })}
           </div>
 
-          {/* Payment history table */}
           <div style={{ background:'white', borderRadius:16, boxShadow:'0 2px 12px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.05)', overflow:'hidden' }}>
             <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0' }}>
               <h3 style={{ fontFamily:'Fraunces,serif', fontSize:'0.95rem', fontWeight:700, color:'#0f1a10', margin:0 }}>Payment History</h3>
@@ -914,9 +990,8 @@ function PaymentsPage({ myPayments, loadingMine, showToast, onPayNow }) {
   );
 }
 
-
 /* ══════════════════════════════════════════════════════
-   ANNOUNCEMENTS PAGE (Member view — read only)
+   ANNOUNCEMENTS PAGE
 ══════════════════════════════════════════════════════ */
 const CATEGORY_META_M = {
   general: { label:'General',  color:'#1a4a24', bg:'#d1f0da', icon:'📢' },
@@ -976,16 +1051,10 @@ function AnnouncementsPage() {
                       {new Date(a.createdAt).toLocaleDateString('en-PK', { day:'numeric', month:'long', year:'numeric' })}
                     </span>
                   </div>
-
                   <h3 style={{ fontFamily:'Fraunces,serif', fontSize:'1.1rem', fontWeight:800, color:'#0f1a10', margin:'0 0 10px' }}>{a.title}</h3>
                   <p style={{ fontSize:'0.85rem', color:'#52695a', margin:0, lineHeight:1.7, whiteSpace:'pre-wrap' }}>{a.body}</p>
-
                   {a.meetingLink && (
-                    <div style={{
-                      marginTop:16, padding:'14px 18px',
-                      background:'linear-gradient(135deg,#e8f5e9,#f1f8e9)',
-                      borderRadius:12, border:'1px solid rgba(26,74,36,0.12)',
-                    }}>
+                    <div style={{ marginTop:16, padding:'14px 18px', background:'linear-gradient(135deg,#e8f5e9,#f1f8e9)', borderRadius:12, border:'1px solid rgba(26,74,36,0.12)' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#1a4a24', marginBottom:4 }}>📅 Google Meet Invitation</div>
@@ -994,19 +1063,11 @@ function AnnouncementsPage() {
                               🗓 {new Date(a.meetingDate).toLocaleString('en-PK', { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' })}
                             </div>
                           )}
-                          {a.meetingNote && (
-                            <div style={{ fontSize:'0.78rem', color:'#52695a', marginBottom:8 }}>{a.meetingNote}</div>
-                          )}
+                          {a.meetingNote && <div style={{ fontSize:'0.78rem', color:'#52695a', marginBottom:8 }}>{a.meetingNote}</div>}
                           <div style={{ fontSize:'0.72rem', color:'#8a9e8c', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.meetingLink}</div>
                         </div>
                         <a href={a.meetingLink} target="_blank" rel="noopener noreferrer"
-                          style={{
-                            display:'inline-flex', alignItems:'center', gap:6,
-                            padding:'10px 20px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)',
-                            color:'white', borderRadius:10, textDecoration:'none',
-                            fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.83rem',
-                            boxShadow:'0 4px 12px rgba(26,74,36,0.3)', flexShrink:0,
-                          }}>
+                          style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'10px 20px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', borderRadius:10, textDecoration:'none', fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.83rem', boxShadow:'0 4px 12px rgba(26,74,36,0.3)', flexShrink:0 }}>
                           📹 Join Meeting
                         </a>
                       </div>
@@ -1082,6 +1143,10 @@ export default function MemberDashboard() {
         }
         @media(max-width:600px){
           .mem-main{padding:16px 12px!important}
+          .grid-aside-2col-r{grid-template-columns:1fr!important}
+        }
+        @media(max-width:480px){
+          .search-input-responsive{width:160px!important}
         }
       `}</style>
 
