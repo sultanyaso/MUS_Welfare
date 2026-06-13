@@ -3,6 +3,7 @@ import multer   from 'multer';
 import User     from '../models/User.js';
 import Payment  from '../models/Payment.js';
 import { authenticate } from '../middleware/auth.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
 router.use(authenticate);
@@ -89,10 +90,11 @@ router.post('/submit-payment', upload.single('screenshot'), async (req, res) => 
     if (method === 'account' && !req.file)
       return res.status(400).json({ message: 'Screenshot is required for bank transfer submissions.' });
 
-    // Store screenshot as base64 string in database
-    const screenshotUrl = req.file
-      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
-      : '';
+    // Upload screenshot to Cloudinary — get back a public HTTPS URL
+    let screenshotUrl = '';
+    if (req.file) {
+      screenshotUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+    }
 
     const payment = await Payment.create({
       member:        memberId,
@@ -103,7 +105,7 @@ router.post('/submit-payment', upload.single('screenshot'), async (req, res) => 
       status:        'pending',
       selfSubmitted: true,
       paymentMethod: method,
-      screenshotUrl,
+      screenshotUrl,   // now a real Cloudinary HTTPS URL
       recordedBy:    null,
     });
 
@@ -183,5 +185,6 @@ router.get('/stats', async (req, res) => {
     return res.status(500).json({ message: 'Server error.' });
   }
 });
+
 
 export default router;
