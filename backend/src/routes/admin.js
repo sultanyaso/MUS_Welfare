@@ -6,8 +6,6 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 const router = express.Router();
 router.use(authenticate, requireAdmin);
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
-
 // ── GET /api/admin/members ────────────────────────────────────
 router.get('/members', async (req, res) => {
   try {
@@ -60,10 +58,10 @@ router.get('/pending-payments', async (req, res) => {
       .populate('member', 'fullName email memberType castFamily')
       .sort({ createdAt: -1 });
 
-    // Attach full URL for screenshots
+    // screenshotUrl is now a direct Cloudinary HTTPS URL — use it as-is
     const result = payments.map(p => ({
       ...p.toObject(),
-      screenshotFullUrl: p.screenshotUrl ? `${BACKEND_URL}${p.screenshotUrl}` : null,
+      screenshotFullUrl: p.screenshotUrl || null,
     }));
 
     return res.json({ payments: result });
