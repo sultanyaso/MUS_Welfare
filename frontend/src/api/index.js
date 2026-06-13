@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://mus-welfare.vercel.app/api'
+  baseURL: 'https://mus-welfare.vercel.app/api' //use this for production (Vercel auto-sets BACKEND_URL in .env to this) - make sure to also set FRONTEND_URL in backend .env to https://mus-welfare-frontend.vercel.app/ and update CORS in backend/src/server.js accordingly    
+  //baseURL: 'http://localhost:5000/api' // Use this for local development
 });
 
 // Attach JWT + smart Content-Type (don't override for FormData)
