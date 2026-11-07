@@ -1,150 +1,150 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api';
 
-/* ─── shared SVG logo mark ─── */
-function LogoMark({ size = 44 }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: size * 0.38,
-      background: 'linear-gradient(135deg,rgba(255,255,255,0.22),rgba(255,255,255,0.06))',
-      border: '1px solid rgba(255,255,255,0.22)',
-      backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 6px 24px rgba(0,0,0,0.18)',
-      flexShrink: 0,
-    }}>
-      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 60 60">
-        <path d="M10 42 Q7 25 22 14 Q30 8 40 13 L36 20 Q28 11 20 20 Q7 30 15 44Z" fill="white"/>
-        <path d="M50 18 Q53 35 38 46 Q30 52 20 47 L24 40 Q32 49 40 40 Q53 30 45 16Z" fill="#8fbc8f"/>
-        <ellipse cx="30" cy="32" rx="9" ry="6" fill="#c9973a"/>
-      </svg>
-    </div>
-  );
-}
+/* ─── Lamp with pull cord ─── */
+function Lamp({ lit, onToggle }) {
+  const [pull, setPull] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startY = useRef(0);
+  const MAX_PULL = 46;
+  const CORD_LEN = 100;
 
-/* ─── decorative left panel background ─── */
-function PanelBg() {
-  return (
-    <>
-      {/* grid */}
-      <svg style={{ position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.05,pointerEvents:'none' }}>
-        <defs>
-          <pattern id="lgrid" width="56" height="56" patternUnits="userSpaceOnUse">
-            <path d="M56 0L0 0 0 56" fill="none" stroke="white" strokeWidth="0.6"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#lgrid)"/>
-      </svg>
-      {/* orbs */}
-      <div style={{ position:'absolute',inset:0,pointerEvents:'none',overflow:'hidden' }}>
-        <div style={{ position:'absolute',width:360,height:360,borderRadius:'50%',top:-100,right:-100,background:'radial-gradient(circle,rgba(201,151,58,0.16) 0%,transparent 70%)',animation:'orb1 9s ease-in-out infinite' }}/>
-        <div style={{ position:'absolute',width:280,height:280,borderRadius:'50%',bottom:60,left:-80,background:'radial-gradient(circle,rgba(61,139,82,0.22) 0%,transparent 70%)',animation:'orb2 11s ease-in-out infinite' }}/>
-        <div style={{ position:'absolute',width:180,height:180,borderRadius:'50%',top:'42%',right:'18%',background:'radial-gradient(circle,rgba(143,188,143,0.12) 0%,transparent 70%)',animation:'orb3 7s ease-in-out infinite' }}/>
-      </div>
-    </>
-  );
-}
+  const nudge = () => {
+    setPull(20);
+    setTimeout(() => setPull(0), 170);
+  };
 
-/* ─── input ─── */
-function Input({ id, label, type, value, onChange, placeholder, icon, right, error }) {
-  const [focused, setFocused] = useState(false);
+  const onDown = e => {
+    startY.current = e.clientY;
+    setDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onMove = e => {
+    if (!dragging) return;
+    setPull(Math.min(MAX_PULL, Math.max(0, e.clientY - startY.current)));
+  };
+  const onUp = e => {
+    if (!dragging) return;
+    setDragging(false);
+    const moved = Math.abs(e.clientY - startY.current);
+    if (pull >= 16) { onToggle(); setPull(0); }          // pulled far enough
+    else if (moved < 5) { onToggle(); nudge(); }          // simple click
+    else setPull(0);                                      // half-hearted drag
+  };
+  const onCancel = () => { setDragging(false); setPull(0); };
+  const onKey = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onToggle();
+      nudge();
+    }
+  };
+
+  const ease = dragging ? 'none' : 'transform .55s cubic-bezier(.34,1.56,.64,1)';
+
   return (
-    <div style={{ marginBottom: 18 }}>
-      <label htmlFor={id} style={{
-        display:'block', marginBottom:7,
-        fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.9px',
-        textTransform:'uppercase',
-        color: error ? '#d9534f' : focused ? 'var(--green-mid)' : 'var(--text-secondary)',
-        transition:'color 0.2s',
-      }}>{label}</label>
-      <div style={{ position:'relative' }}>
-        {icon && (
-          <span style={{
-            position:'absolute', left:14, top:'50%', transform:'translateY(-50%)',
-            color: focused ? 'var(--green-mid)' : 'var(--green-pale)',
-            display:'flex', pointerEvents:'none', transition:'color 0.2s',
-          }}>{icon}</span>
-        )}
-        <input id={id} type={type} value={value} onChange={onChange}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+    <svg width="260" height="420" viewBox="0 0 260 420" className="lamp-svg">
+      <defs>
+        <linearGradient id="shadeGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#4a4b53" />
+          <stop offset="0.45" stopColor="#202126" />
+          <stop offset="1" stopColor="#0a0a0c" />
+        </linearGradient>
+      </defs>
+
+      {/* ceiling cable + cap */}
+      <rect x="129" y="0" width="2" height="108" fill="#3a3b42" />
+      <rect x="120" y="104" width="20" height="16" rx="3" fill="url(#shadeGrad)" />
+
+      {/* shade */}
+      <path d="M104 120 L156 120 L206 204 Q130 222 54 204 Z" fill="url(#shadeGrad)" />
+      <path d="M104 120 L54 204" stroke="rgba(255,255,255,0.2)" strokeWidth="1" fill="none" />
+      <ellipse className={`lamp-rim ${lit ? 'on' : ''}`} cx="130" cy="205" rx="76" ry="10" />
+      <ellipse className={`lamp-bulb ${lit ? 'on' : ''}`} cx="130" cy="210" rx="20" ry="8" />
+
+      {/* pull cord */}
+      <g
+        role="switch"
+        aria-checked={lit}
+        aria-label="Pull the lamp cord to show or hide the sign-in form"
+        tabIndex={0}
+        className="cord"
+        style={{ touchAction: 'none' }}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onCancel}
+        onKeyDown={onKey}
+      >
+        <rect x="174" y="200" width="44" height="190" fill="transparent" />
+        <rect
+          x="195.25" y="203" width="1.5" height={CORD_LEN}
+          fill="#8a8b94"
           style={{
-            width:'100%', padding:'13px 14px',
-            paddingLeft: icon ? 42 : 14,
-            paddingRight: right ? 46 : 14,
-            border: `1.5px solid ${error ? '#d9534f' : focused ? 'var(--green-mid)' : 'var(--border)'}`,
-            borderRadius: 'var(--radius-md)',
-            background: focused ? '#fafff8' : 'var(--bg-input)',
-            fontSize:'0.9rem', color:'var(--text-primary)',
-            outline:'none', transition:'all 0.22s',
-            boxShadow: focused ? '0 0 0 3px rgba(45,106,63,0.09)' : 'none',
+            transformBox: 'fill-box',
+            transformOrigin: '50% 0%',
+            transform: `scaleY(${(CORD_LEN + pull) / CORD_LEN})`,
+            transition: ease,
           }}
         />
-        {right && (
-          <div style={{ position:'absolute', right:4, top:'50%', transform:'translateY(-50%)' }}>{right}</div>
-        )}
-      </div>
-      {error && <p style={{ margin:'5px 0 0', fontSize:'0.72rem', color:'#d9534f' }}>{error}</p>}
-    </div>
-  );
-}
-
-/* ─── eye toggle ─── */
-function EyeToggle({ show, onToggle }) {
-  return (
-    <button type="button" onClick={onToggle} aria-label="Toggle password"
-      style={{ background:'none', border:'none', cursor:'pointer', padding:10, color:'var(--green-pale)', display:'flex', transition:'color 0.2s' }}
-      onMouseEnter={e => e.currentTarget.style.color='var(--green-mid)'}
-      onMouseLeave={e => e.currentTarget.style.color='var(--green-pale)'}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        {show
-          ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
-          : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-        }
-      </svg>
-    </button>
-  );
-}
-
-/* ─── spinner ─── */
-function Spinner() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-      style={{ animation:'spin 0.75s linear infinite', flexShrink:0 }}>
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeOpacity="0.3"/>
-      <path d="M12 2v4"/>
+        <g style={{ transform: `translateY(${pull}px)`, transition: ease }}>
+          <rect x="193.5" y="298" width="5" height="8" rx="1.5" fill="#8a8b94" />
+          <circle className={`cord-bead ${lit ? 'on' : ''}`} cx="196" cy="314" r="7" />
+        </g>
+      </g>
     </svg>
   );
 }
 
-/* ═══════════════════════════════════════════
-   LOGIN PAGE
-═══════════════════════════════════════════ */
+/* ─── Field ─── */
+function Field({ id, label, type, value, onChange, placeholder, autoComplete, right, inputRef }) {
+  return (
+    <div className="field-wrap">
+      <label htmlFor={id} className="field-label">{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          id={id} ref={inputRef} type={type} value={value} onChange={onChange}
+          placeholder={placeholder} autoComplete={autoComplete}
+          className="field" style={right ? { paddingRight: 56 } : undefined}
+        />
+        {right}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════ LOGIN PAGE ═══════════════ */
 export default function Login() {
-  const { login }  = useAuth();
-  const navigate   = useNavigate();
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd,  setShowPwd]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // ── Show verified=1 success banner when redirected from email link ──
-  const [verifiedBanner, setVerifiedBanner] = useState(
-    searchParams.get('verified') === '1'
-  );
+  const cameVerified = searchParams.get('verified') === '1';
+  const [verifiedBanner, setVerifiedBanner] = useState(cameVerified);
+  const [lit, setLit] = useState(cameVerified); // lamp starts on after email verification
+  const emailRef = useRef(null);
 
   useEffect(() => {
-    if (verifiedBanner) {
-      const t = setTimeout(() => setVerifiedBanner(false), 8000);
-      return () => clearTimeout(t);
-    }
+    if (!verifiedBanner) return;
+    const t = setTimeout(() => setVerifiedBanner(false), 8000);
+    return () => clearTimeout(t);
   }, [verifiedBanner]);
+
+  // Focus the email field once the form has slid in (desktop only, so phones don't pop the keyboard)
+  useEffect(() => {
+    if (!lit) return;
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    const t = setTimeout(() => emailRef.current?.focus({ preventScroll: true }), 900);
+    return () => clearTimeout(t);
+  }, [lit]);
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -157,176 +157,204 @@ export default function Login() {
     } catch (err) {
       const status = err.response?.data?.status;
       if (status === 'unverified')
-        setError('📧 Your email is not verified. Please check your inbox and click the verification link. Only real Gmail accounts can log in.');
+        setError('Your email is not verified. Please check your inbox and click the verification link. Only real Gmail accounts can log in.');
       else if (status === 'pending')
-        setError('⏳ Your account is pending admin approval.');
+        setError('Your account is pending admin approval.');
       else if (status === 'rejected')
-        setError('❌ Your application was rejected. Contact the committee.');
+        setError('Your application was rejected. Contact the committee.');
       else
         setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally { setLoading(false); }
   };
 
-  const emailIcon = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>;
-  const lockIcon  = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-
   return (
-    <div style={{ minHeight:'100vh', display:'flex', fontFamily:'Sora,sans-serif' }}>
+    <div className={`lg ${lit ? 'on' : ''}`}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,700;1,9..144,900&display=swap');
-        @keyframes orb1{0%,100%{transform:translate(0,0)}50%{transform:translate(-18px,22px)}}
-        @keyframes orb2{0%,100%{transform:translate(0,0)}50%{transform:translate(16px,-20px)}}
-        @keyframes orb3{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,14px)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
-        .login-left{flex:0 0 46%;min-width:0;display:flex;flex-direction:column;padding:48px 56px;position:relative;overflow:hidden;background:linear-gradient(158deg,#081a0c 0%,#0f2d15 30%,#1a4a24 65%,#2d6a3f 100%)}
-        .login-right{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 40px;background:#f8faf5;overflow-y:auto;position:relative}
-        .login-card{width:100%;max-width:420px;position:relative;animation:fadeUp 0.5s ease both}
-        .pri-btn{width:100%;padding:14px;background:linear-gradient(135deg,#1a4a24,#2d6a3f,#3d8b52);color:white;border:none;border-radius:var(--radius-md);font-size:0.93rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.22s;box-shadow:0 4px 16px rgba(26,74,36,0.28);letter-spacing:0.3px;font-family:Sora,sans-serif}
-        .pri-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 24px rgba(26,74,36,0.38)}
-        .pri-btn:active:not(:disabled){transform:translateY(0)}
-        .pri-btn:disabled{opacity:0.65;cursor:wait}
-        .sec-btn{width:100%;padding:13px;background:transparent;color:var(--green-mid);border:1.5px solid rgba(45,106,63,0.28);border-radius:var(--radius-md);font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:Sora,sans-serif}
-        .sec-btn:hover{background:rgba(45,106,63,0.06);border-color:rgba(45,106,63,0.45)}
-        .mobile-logo{display:none;align-items:center;gap:12px;margin-bottom:32px}
-        @media(max-width:860px){
-          .login-left{display:none!important}
-          .login-right{padding:32px 20px}
-          .mobile-logo{display:flex!important}
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;600&display=swap');
+
+        .lg {
+          --bg-off: #202126;          /* lamp off: lighter room */
+          --bg-on: #050506;           /* lamp on: darker room */
+          --accent: #39ffb0;
+          --accent-rgb: 57, 255, 176;
+          --line: rgba(255,255,255,0.1);
+          --text: #c4c5cb; --dim: #7b7c85; --hi: #f3f3f5; --danger: #ff7a7a;
+          position: relative; overflow: hidden; min-height: 100vh;
+          display: grid; grid-template-columns: 1fr 1fr;
+          background: var(--bg-off); color: var(--text);
+          font-family: Sora, sans-serif; -webkit-font-smoothing: antialiased;
+          transition: background 1.4s ease;
         }
-        @media(max-width:480px){
-          .login-right{padding:24px 16px}
-          .login-card{max-width:100%}
+        .lg.on { background: var(--bg-on); }
+        .lg * { box-sizing: border-box; }
+        .lg button { font-family: inherit; }
+
+        /* brand */
+        .brand { position: absolute; top: 28px; left: 6vw; z-index: 5; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .brand img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.14); }
+        .brand-name { font-size: .95rem; color: var(--hi); line-height: 1.1; }
+        .brand-sub { font-size: .55rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-top: 3px; }
+
+        /* stage (lamp) */
+        .stage { position: relative; z-index: 1; min-height: 100vh; }
+        .lamp-wrap { position: absolute; top: 0; left: 50%; width: 260px; height: 420px; transform: translateX(-50%); transform-origin: top center; }
+        .lamp-svg { position: relative; z-index: 1; display: block; overflow: visible; }
+
+        .glow, .cone-wrap { position: absolute; pointer-events: none; opacity: 0; transition: opacity 1.4s ease; }
+        .lg.on .glow, .lg.on .cone-wrap { opacity: 1; animation: flicker .9s ease-out; }
+        .glow {
+          top: 210px; left: 50%; width: 1000px; height: 1000px; transform: translate(-50%, -35%);
+          background: radial-gradient(circle at center, rgba(var(--accent-rgb), .16), rgba(var(--accent-rgb), .05) 40%, transparent 65%);
+        }
+        .cone-wrap { top: 210px; left: 50%; width: 620px; height: 900px; transform: translateX(-50%); filter: blur(12px); }
+        .cone {
+          width: 100%; height: 100%;
+          background: linear-gradient(to bottom, rgba(var(--accent-rgb), .3), rgba(var(--accent-rgb), 0) 80%);
+          clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+        }
+        @keyframes flicker { 0% { opacity: 0; } 10% { opacity: .85; } 16% { opacity: .25; } 26% { opacity: 1; } 34% { opacity: .65; } 100% { opacity: 1; } }
+
+        .lamp-rim { fill: #050506; transition: fill 1s ease; }
+        .lamp-rim.on { fill: rgba(var(--accent-rgb), .55); }
+        .lamp-bulb { fill: #2a2b30; transition: fill 1s ease, filter 1s ease; }
+        .lamp-bulb.on { fill: var(--accent); filter: drop-shadow(0 0 14px var(--accent)); }
+        .cord { cursor: grab; outline: none; }
+        .cord:active { cursor: grabbing; }
+        .cord-bead { fill: #c4c5cb; transition: fill .8s ease, filter .8s ease; }
+        .cord-bead.on { fill: var(--accent); filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), .7)); }
+        .cord:focus-visible .cord-bead { stroke: var(--hi); stroke-width: 2; }
+
+        .hint { position: absolute; bottom: 44px; left: 0; right: 0; text-align: center; font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); }
+
+        /* form panel */
+        .right { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 110px 6vw 64px; }
+        .lg .panel {
+          position: relative; width: 100%; max-width: 400px;
+          opacity: 0; transform: translateX(48px); visibility: hidden;
+          transition: opacity 1s ease, transform 1.1s cubic-bezier(.22,1,.36,1), visibility 0s linear 1.1s;
+        }
+        .lg.on .panel {
+          opacity: 1; transform: none; visibility: visible;
+          transition: opacity 1.2s ease .35s, transform 1.2s cubic-bezier(.22,1,.36,1) .35s, visibility 0s linear 0s;
+        }
+        .panel::before {
+          content: ''; position: absolute; left: -40px; top: 0; bottom: 0; width: 1px;
+          background: linear-gradient(to bottom, transparent, rgba(var(--accent-rgb), .5), transparent);
+        }
+
+        .eyebrow { display: inline-flex; align-items: center; gap: 12px; font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-bottom: 28px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+        .h2 { font-size: clamp(1.9rem, 3vw, 2.6rem); font-weight: 200; line-height: 1.15; letter-spacing: -0.02em; color: var(--hi); margin: 0 0 20px; }
+        .sub { font-size: .85rem; color: var(--dim); font-weight: 300; margin: 0 0 48px; }
+        .sub a { color: var(--hi); text-decoration: none; border-bottom: 1px solid rgba(var(--accent-rgb), .5); padding-bottom: 2px; transition: color .4s; }
+        .sub a:hover { color: var(--accent); }
+
+        .notice { padding: 14px 0 14px 16px; margin-bottom: 32px; border-left: 1px solid; font-size: .82rem; line-height: 1.7; font-weight: 300; }
+        .notice-ok { border-color: var(--accent); color: var(--hi); }
+        .notice-err { border-color: var(--danger); color: #ffb3b3; }
+
+        .field-wrap { margin-bottom: 36px; }
+        .field-label { display: block; font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; transition: color .5s; }
+        .field-wrap:focus-within .field-label { color: var(--accent); }
+        .field { width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,.16); color: var(--hi); font-family: inherit; font-size: .95rem; font-weight: 300; padding: 10px 0 14px; outline: none; transition: border-color .6s; }
+        .field:focus { border-bottom-color: var(--accent); }
+        .field::placeholder { color: #4d4e55; }
+        .field:-webkit-autofill { -webkit-text-fill-color: var(--hi); transition: background-color 99999s ease; }
+        .toggle { position: absolute; right: 0; bottom: 12px; background: none; border: none; cursor: pointer; color: var(--dim); font-size: .62rem; letter-spacing: 2px; text-transform: uppercase; padding: 4px 0; transition: color .4s; }
+        .toggle:hover { color: var(--hi); }
+
+        .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px 34px; background: var(--accent); color: #04110b; font-weight: 600; font-size: .85rem; letter-spacing: .5px; text-decoration: none; border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; transition: box-shadow .6s ease, transform .6s ease, background .6s ease; }
+        .btn:hover:not(:disabled) { box-shadow: 0 0 40px rgba(var(--accent-rgb), .35); transform: translateY(-1px); }
+        .btn:disabled { opacity: .6; cursor: wait; }
+        .btn-ghost { background: transparent; color: var(--hi); border-color: rgba(255,255,255,.2); font-weight: 400; }
+        .btn-ghost:hover { background: rgba(255,255,255,.05); box-shadow: none !important; }
+        .spin { width: 14px; height: 14px; border: 2px solid rgba(4,17,11,.3); border-top-color: #04110b; border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .or { display: flex; align-items: center; gap: 16px; margin: 32px 0; color: var(--dim); font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; }
+        .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+        .foot { margin-top: 56px; text-align: center; font-size: .68rem; color: var(--dim); line-height: 1.8; }
+
+        /* mobile: lamp on top, form below */
+        @media (max-width: 860px) {
+          .lg { grid-template-columns: 1fr; }
+          .stage { min-height: 330px; }
+          .lamp-wrap { transform: translateX(-50%) scale(.72); }
+          .hint { bottom: 12px; }
+          .right { align-items: flex-start; padding: 16px 7vw 64px; }
+          .lg .panel { transform: translateY(32px); }
+          .panel::before { display: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .lg, .lg * { transition-duration: .01s !important; transition-delay: 0s !important; animation: none !important; }
         }
       `}</style>
 
-      {/* ── LEFT PANEL ── */}
-      <div className="login-left">
-        <PanelBg/>
-
-        {/* Logo */}
-        <div style={{ display:'flex', alignItems:'center', gap:14, zIndex:1, animation:'fadeUp 0.5s ease 0.05s both', opacity:0 }}>
-          <LogoMark size={46}/>
-          <div>
-            <div style={{ fontFamily:'Fraunces,serif', fontWeight:900, fontSize:'1.2rem', color:'white', lineHeight:1.1 }}>MUS Welfare</div>
-            <div style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.38)', letterSpacing:'3px', textTransform:'uppercase', marginTop:2 }}>Organization</div>
-          </div>
+      <Link to="/" className="brand">
+        <img src="/mus.jpg" alt="MUS Welfare logo" />
+        <div>
+          <div className="brand-name">MUS Welfare</div>
+          <div className="brand-sub">Organization</div>
         </div>
+      </Link>
 
-        {/* Hero text */}
-        <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', paddingTop:40, paddingBottom:32, zIndex:1 }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(201,151,58,0.12)', border:'1px solid rgba(201,151,58,0.3)', color:'#c9973a', padding:'5px 14px', borderRadius:50, fontSize:'0.65rem', fontWeight:700, letterSpacing:'2.5px', textTransform:'uppercase', marginBottom:24, width:'fit-content', animation:'fadeUp 0.5s ease 0.2s both', opacity:0 }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#c9973a', animation:'pulse 2s ease infinite' }}/>
-            Member Portal
-          </div>
-
-          <h1 style={{ fontFamily:'Fraunces,serif', fontSize:'clamp(2.4rem,3.8vw,3.4rem)', fontWeight:900, color:'white', lineHeight:1.06, margin:'0 0 20px', animation:'fadeUp 0.5s ease 0.32s both', opacity:0 }}>
-            Every<br/>contribution<br/><em style={{ color:'#c9973a', fontStyle:'italic' }}>matters.</em>
-          </h1>
-
-          <p style={{ color:'rgba(255,255,255,0.48)', fontSize:'0.88rem', lineHeight:1.85, maxWidth:300, margin:'0 0 36px', animation:'fadeUp 0.5s ease 0.44s both', opacity:0 }}>
-            A trusted family welfare circle — pooling resources, building futures, and strengthening our community together.
-          </p>
-
-          <div style={{ display:'flex', flexDirection:'column', gap:10, animation:'fadeUp 0.5s ease 0.56s both', opacity:0 }}>
-            {[['🏦','Transparent fund management'],['🛡️','Secure & verified members'],['🤝','Community-first mission']].map(([icon,text]) => (
-              <div key={text} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 15px', background:'rgba(255,255,255,0.05)', borderRadius:10, border:'1px solid rgba(255,255,255,0.07)' }}>
-                <span style={{ fontSize:'0.95rem' }}>{icon}</span>
-                <span style={{ fontSize:'0.8rem', color:'rgba(255,255,255,0.62)', fontWeight:500 }}>{text}</span>
-              </div>
-            ))}
-          </div>
+      {/* ── Lamp stage ── */}
+      <div className="stage">
+        <div className="lamp-wrap">
+          <div className="glow" />
+          <div className="cone-wrap"><div className="cone" /></div>
+          <Lamp lit={lit} onToggle={() => setLit(v => !v)} />
         </div>
-
-        {/* Stats footer */}
-        <div style={{ display:'flex', borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:24, zIndex:1, animation:'fadeUp 0.5s ease 0.68s both', opacity:0 }}>
-          {[['PKR 500','Job Holder Min'],['PKR 100','Student Min'],['2026–27','Active Term']].map(([n,l],i) => (
-            <div key={l} style={{ flex:1, textAlign: i===1?'center':i===2?'right':'left' }}>
-              <div style={{ fontFamily:'Fraunces,serif', fontSize:'1rem', fontWeight:700, color:'#c9973a' }}>{n}</div>
-              <div style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.35)', marginTop:3, letterSpacing:'0.8px', textTransform:'uppercase' }}>{l}</div>
-            </div>
-          ))}
-        </div>
+        <div className="hint">{lit ? 'Pull again to switch off' : 'Pull the cord to sign in'}</div>
       </div>
 
-      {/* ── RIGHT PANEL ── */}
-      <div className="login-right">
-        <div style={{ position:'absolute', inset:0, pointerEvents:'none', backgroundImage:'radial-gradient(circle at 25% 15%,rgba(45,106,63,0.05) 0%,transparent 55%),radial-gradient(circle at 80% 85%,rgba(201,151,58,0.04) 0%,transparent 55%)'}}/>
-
-        <div className="login-card">
-          {/* Mobile logo */}
-          <div className="mobile-logo">
-            <div style={{ width:36, height:36, borderRadius:10, background:'var(--green-base)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="20" height="20" viewBox="0 0 60 60"><path d="M10 42 Q7 25 22 14 Q30 8 40 13 L36 20 Q28 11 20 20 Q7 30 15 44Z" fill="white"/><path d="M50 18 Q53 35 38 46 Q30 52 20 47 L24 40 Q32 49 40 40 Q53 30 45 16Z" fill="#8fbc8f"/><ellipse cx="30" cy="32" rx="9" ry="6" fill="#c9973a"/></svg>
-            </div>
-            <span style={{ fontFamily:'Fraunces,serif', fontWeight:900, fontSize:'1.05rem', color:'var(--green-base)' }}>MUS Welfare</span>
-          </div>
-
-          {/* Header */}
-          <div style={{ marginBottom:32 }}>
-            <div style={{ fontSize:'0.65rem', fontWeight:700, letterSpacing:'3px', textTransform:'uppercase', color:'var(--text-muted)', marginBottom:8 }}>Welcome back</div>
-            <h2 style={{ fontFamily:'Fraunces,serif', fontSize:'2rem', fontWeight:900, color:'var(--text-primary)', margin:'0 0 10px', lineHeight:1.1 }}>
-              Sign in to your<br/>account
-            </h2>
-            <p style={{ fontSize:'0.85rem', color:'var(--text-muted)' }}>
-              No account?{' '}
-              <Link to="/signup" style={{ color:'var(--green-mid)', fontWeight:700, textDecoration:'none' }}
-                onMouseEnter={e => e.target.style.color='var(--green-base)'}
-                onMouseLeave={e => e.target.style.color='var(--green-mid)'}
-              >Create one →</Link>
-            </p>
-          </div>
+      {/* ── Form panel ── */}
+      <div className="right">
+        <div className="panel">
+          <div className="eyebrow"><span className="dot" /> Member portal</div>
+          <h2 className="h2">Sign in to your account.</h2>
+          <p className="sub">
+            No account? <Link to="/signup">Create one</Link>
+          </p>
 
           <form onSubmit={handleSubmit} noValidate>
-
-            {/* ── Email verified success banner ── */}
             {verifiedBanner && (
-              <div style={{ padding:'13px 15px', marginBottom:18, background:'#f0faf4', border:'1.5px solid #6dbf8b', borderRadius:'var(--radius-md)', display:'flex', alignItems:'flex-start', gap:10, fontSize:'0.85rem', color:'#1a5c34' }}>
-                <span style={{ flexShrink:0 }}>✅</span>
-                <span><strong>Email verified!</strong> Your account is confirmed. You can now sign in.</span>
+              <div className="notice notice-ok">
+                <strong style={{ fontWeight: 600 }}>Email verified.</strong> Your account is confirmed. You can now sign in.
               </div>
             )}
+            {error && <div className="notice notice-err" role="alert">{error}</div>}
 
-            {error && (
-              <div style={{ padding:'12px 15px', marginBottom:18, background:'#fef4f0', border:'1.5px solid #f5c6b0', borderRadius:'var(--radius-md)', display:'flex', alignItems:'flex-start', gap:10, fontSize:'0.83rem', color:'#b94a2c' }}>
-                <span style={{ flexShrink:0, marginTop:1 }}>⚠️</span>
-                <span>{error}</span>
-              </div>
-            )}
-
-            <Input id="email" label="Email address" type="email"
+            <Field
+              id="email" label="Email address" type="email" inputRef={emailRef}
               value={email} onChange={e => { setEmail(e.target.value); setError(''); }}
-              placeholder="sultanyasir990@gmail.com" icon={emailIcon}
+              placeholder="you@gmail.com" autoComplete="email"
             />
 
-            <Input id="password" label="Password"
-              type={showPwd ? 'text' : 'password'}
+            <Field
+              id="password" label="Password" type={showPwd ? 'text' : 'password'}
               value={password} onChange={e => { setPassword(e.target.value); setError(''); }}
-              placeholder="Your password" icon={lockIcon}
-              right={<EyeToggle show={showPwd} onToggle={() => setShowPwd(v => !v)}/>}
+              placeholder="Your password" autoComplete="current-password"
+              right={
+                <button type="button" className="toggle" onClick={() => setShowPwd(v => !v)}>
+                  {showPwd ? 'Hide' : 'Show'}
+                </button>
+              }
             />
 
-            <div style={{ marginBottom:20 }}>
-              <button type="submit" disabled={loading} className="pri-btn">
-                {loading ? <><Spinner/> Signing in…</> : 'Sign In →'}
-              </button>
-            </div>
+            <button type="submit" disabled={loading} className="btn">
+              {loading ? <><span className="spin" /> Signing in…</> : 'Sign in'}
+            </button>
 
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
-              <span style={{ flex:1, height:1, background:'var(--border)' }}/>
-              <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', fontWeight:500, whiteSpace:'nowrap' }}>New member?</span>
-              <span style={{ flex:1, height:1, background:'var(--border)' }}/>
-            </div>
+            <div className="or">New member?</div>
 
-            <Link to="/signup" style={{ textDecoration:'none', display:'block' }}>
-              <button type="button" className="sec-btn">Create an Account</button>
-            </Link>
+            <Link to="/signup" className="btn btn-ghost">Create an account</Link>
           </form>
 
-          <p style={{ marginTop:36, textAlign:'center', fontSize:'0.68rem', color:'var(--text-muted)', letterSpacing:'0.3px' }}>
-            MUS Welfare Organization · Executive Committee 2026–2027
-            • Developed by Yasir Sultan
+          <p className="foot">
+            MUS Welfare Organization · Executive Committee 2026–2027<br />
+            Developed by Yasir Sultan
           </p>
         </div>
       </div>
