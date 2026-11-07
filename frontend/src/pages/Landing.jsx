@@ -1,28 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-/* ─── Real org logo ─── */
-function OrgLogo({ size = 36, rounded = true }) {
+/* ─── Logo ─── */
+function OrgLogo({ size = 34 }) {
   return (
     <img
       src="/mus.jpg"
-      alt="MUS Welfare Logo"
-      style={{
-        width: size, height: size,
-        borderRadius: rounded ? size * 0.28 : '50%',
-        objectFit: 'cover',
-        flexShrink: 0,
-        border: '2px solid rgba(255,255,255,0.25)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-      }}
+      alt="MUS Welfare logo"
+      style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.14)' }}
     />
   );
 }
 
 /* ─── Navbar ─── */
 function Navbar({ activeSection }) {
-  const [scrolled,    setScrolled]    = useState(false);
-  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -31,8 +24,8 @@ function Navbar({ activeSection }) {
   }, []);
 
   const navLinks = [
-    { label: 'Home',    href: '#home'    },
-    { label: 'About',   href: '#about'   },
+    { label: 'Home', href: '#home' },
+    { label: 'About', href: '#about' },
     { label: 'How It Works', href: '#how' },
     { label: 'Contact', href: '#contact' },
   ];
@@ -42,127 +35,51 @@ function Navbar({ activeSection }) {
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const isLightNav = activeSection !== 'home' && !scrolled;
-  const navBackground = scrolled
-    ? 'rgba(8,26,12,0.97)'
-    : activeSection === 'home'
-      ? 'transparent'
-      : 'rgba(255,255,255,0.98)';
-  const navBorder = scrolled
-    ? '1px solid rgba(255,255,255,0.07)'
-    : activeSection === 'home'
-      ? 'none'
-      : '1px solid rgba(26,74,36,0.12)';
-
   return (
-    <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-      background: navBackground,
-      backdropFilter: scrolled ? 'blur(16px)' : 'none',
-      borderBottom: navBorder,
-      transition: 'all 0.3s ease',
-      padding: '0 5vw',
-    }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <OrgLogo size={38} rounded={true}/>
+    <nav className={`nav ${scrolled || menuOpen ? 'nav-solid' : ''}`}>
+      <div className="nav-inner">
+        <div className="brand">
+          <OrgLogo size={34} />
           <div>
-            <div style={{ fontFamily: 'Fraunces,serif', fontWeight: 900, fontSize: '1rem', color: isLightNav ? '#0f1a10' : 'white', lineHeight: 1.1 }}>MUS Welfare</div>
-            <div style={{ fontSize: '0.55rem', color: isLightNav ? 'rgba(15,26,16,0.65)' : 'rgba(255,255,255,0.4)', letterSpacing: '2.5px', textTransform: 'uppercase' }}>Organization</div>
+            <div className="brand-name">MUS Welfare</div>
+            <div className="brand-sub">Organization</div>
           </div>
         </div>
-        {/* Desktop nav links */}
-        <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {navLinks.map(({ label, href }) => {
-            const isActive = activeSection === href.slice(1);
-            const linkColor = isLightNav
-              ? isActive ? '#0f1a10' : 'rgba(15,26,16,0.7)'
-              : isActive ? 'white' : 'rgba(255,255,255,0.75)';
-            const hoverColor = isLightNav ? '#0f1a10' : 'white';
-            return (
-              <button key={label} onClick={() => scrollTo(href)} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '8px 16px', borderRadius: 8,
-                color: linkColor,
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.88rem', fontFamily: 'Sora,sans-serif',
-                transition: 'all 0.2s',
-                borderBottom: isActive ? '2px solid #c9973a' : '2px solid transparent',
-              }}
-                onMouseEnter={e => e.currentTarget.style.color = hoverColor}
-                onMouseLeave={e => e.currentTarget.style.color = linkColor}
-              >{label}</button>
-            );
-          })}
+
+        <div className="nav-links">
+          {navLinks.map(({ label, href }) => (
+            <button
+              key={label}
+              onClick={() => scrollTo(href)}
+              className={`nav-link ${activeSection === href.slice(1) ? 'active' : ''}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Auth buttons */}
-        <div className="nav-auth" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link to="/login" style={{
-            padding: '8px 20px', borderRadius: 8,
-            color: isLightNav ? '#0f1a10' : 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: '0.88rem',
-            textDecoration: 'none', fontFamily: 'Sora,sans-serif',
-            border: isLightNav ? '1px solid rgba(26,74,36,0.18)' : '1px solid rgba(255,255,255,0.2)',
-            background: isLightNav ? 'rgba(26,74,36,0.06)' : 'transparent',
-            transition: 'all 0.2s',
-          }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = isLightNav ? 'rgba(26,74,36,0.12)' : 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.color = isLightNav ? '#0f1a10' : 'white';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = isLightNav ? 'rgba(26,74,36,0.06)' : 'transparent';
-              e.currentTarget.style.color = isLightNav ? '#0f1a10' : 'rgba(255,255,255,0.8)';
-            }}
-          >Log In</Link>
-          <Link to="/signup" style={{
-            padding: '8px 20px', borderRadius: 8,
-            background: 'linear-gradient(135deg,#c9973a,#e8b84b)',
-            color: '#0f1a10', fontWeight: 700, fontSize: '0.88rem',
-            textDecoration: 'none', fontFamily: 'Sora,sans-serif',
-            boxShadow: '0 4px 14px rgba(201,151,58,0.4)',
-            transition: 'all 0.2s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(201,151,58,0.5)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 14px rgba(201,151,58,0.4)'; }}
-          >Join Now</Link>
+        <div className="nav-auth">
+          <Link to="/login" className="btn-text">Log In</Link>
+          <Link to="/signup" className="btn btn-sm">Join Now</Link>
         </div>
 
-        {/* Hamburger */}
-        <button className="hamburger" onClick={() => setMenuOpen(v => !v)} style={{
-          display: 'none', background: 'none', border: 'none', cursor: 'pointer',
-          color: 'white', padding: 6,
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <button className="hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             {menuOpen
-              ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
-              : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
-            }
+              ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+              : <><line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="21" y2="16" /></>}
           </svg>
         </button>
       </div>
 
-      {/* Mobile menu */}
       {menuOpen && (
-        <div style={{
-          background: 'rgba(8,26,12,0.98)', backdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          padding: '16px 5vw 24px',
-        }}>
+        <div className="mobile-menu">
           {navLinks.map(({ label, href }) => (
-            <button key={label} onClick={() => scrollTo(href)} style={{
-              display: 'block', width: '100%', textAlign: 'left',
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '12px 0', color: 'rgba(255,255,255,0.8)',
-              fontWeight: 600, fontSize: '1rem', fontFamily: 'Sora,sans-serif',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}>{label}</button>
+            <button key={label} onClick={() => scrollTo(href)} className="mobile-link">{label}</button>
           ))}
-          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '11px', textAlign: 'center', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', color: 'white', textDecoration: 'none', fontWeight: 600, fontFamily: 'Sora,sans-serif', fontSize: '0.9rem' }}>Log In</Link>
-            <Link to="/signup" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '11px', textAlign: 'center', borderRadius: 10, background: 'linear-gradient(135deg,#c9973a,#e8b84b)', color: '#0f1a10', textDecoration: 'none', fontWeight: 700, fontFamily: 'Sora,sans-serif', fontSize: '0.9rem' }}>Join Now</Link>
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ flex: 1 }}>Log In</Link>
+            <Link to="/signup" onClick={() => setMenuOpen(false)} className="btn" style={{ flex: 1 }}>Join Now</Link>
           </div>
         </div>
       )}
@@ -171,254 +88,130 @@ function Navbar({ activeSection }) {
 }
 
 /* ─── Section wrapper ─── */
-function Section({ id, children, bg = 'white', style = {} }) {
+function Section({ id, children, alt = false }) {
   return (
-    <section id={id} className="fade-element" style={{ background: bg, padding: '96px 5vw', ...style }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>{children}</div>
+    <section id={id} className={`section ${alt ? 'section-alt' : ''}`}>
+      <div className="container reveal">{children}</div>
     </section>
   );
 }
 
-function SectionTag({ children }) {
-  return (
-    <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(26,74,36,0.08)', border:'1px solid rgba(26,74,36,0.18)', color:'#1a4a24', padding:'5px 16px', borderRadius:50, fontSize:'0.65rem', fontWeight:700, letterSpacing:'2.5px', textTransform:'uppercase', marginBottom:18 }}>
-      {children}
-    </div>
-  );
+function Eyebrow({ children }) {
+  return <div className="eyebrow">{children}</div>;
 }
 
-/* ─── Hero Section ─── */
+/* ─── Hero ─── */
 function Hero() {
   const [count, setCount] = useState({ members: 0, fund: 0, months: 0 });
 
-  /* Animate counters once on mount */
   useEffect(() => {
     const targets = { members: 120, fund: 850, months: 18 };
-    const duration = 1800;
-    const steps = 60;
+    const duration = 2600;
+    const steps = 80;
     const interval = duration / steps;
     let step = 0;
     const timer = setInterval(() => {
       step++;
-      const p = step / steps;
-      const ease = 1 - Math.pow(1 - p, 3);
+      const ease = 1 - Math.pow(1 - step / steps, 3);
       setCount({
         members: Math.round(targets.members * ease),
-        fund:    Math.round(targets.fund    * ease),
-        months:  Math.round(targets.months  * ease),
+        fund: Math.round(targets.fund * ease),
+        months: Math.round(targets.months * ease),
       });
       if (step >= steps) clearInterval(timer);
     }, interval);
     return () => clearInterval(timer);
   }, []);
 
+  const stats = [
+    { val: count.members, suffix: '+', label: 'Active members' },
+    { val: count.fund, prefix: 'PKR ', suffix: 'k+', label: 'Pooled fund' },
+    { val: count.months, suffix: '', label: 'Months active' },
+  ];
+
   return (
-    <section id="home" style={{
-      minHeight: '100vh', position: 'relative', overflow: 'hidden',
-      background: 'linear-gradient(158deg,#040e06 0%,#081a0c 25%,#0f2d15 55%,#1a4a24 80%,#2d6a3f 100%)',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      {/* ── Decorative layers ── */}
-
-      {/* Fine dot grid */}
-      <svg style={{ position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.07,pointerEvents:'none' }}>
-        <defs>
-          <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="1.5" cy="1.5" r="1.5" fill="white"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#dots)"/>
-      </svg>
-
-      {/* Diagonal line accent */}
-      <svg style={{ position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.04,pointerEvents:'none' }}>
-        <line x1="0" y1="100%" x2="100%" y2="0" stroke="white" strokeWidth="1.5"/>
-        <line x1="-10%" y1="100%" x2="90%" y2="0" stroke="white" strokeWidth="0.8"/>
-        <line x1="10%" y1="100%" x2="110%" y2="0" stroke="white" strokeWidth="0.8"/>
-      </svg>
-
-      {/* Glowing orbs */}
-      <div style={{ position:'absolute',inset:0,pointerEvents:'none',overflow:'hidden' }}>
-        <div style={{ position:'absolute',width:700,height:700,borderRadius:'50%',top:-250,right:-200,background:'radial-gradient(circle,rgba(201,151,58,0.1) 0%,transparent 65%)',animation:'orb1 12s ease-in-out infinite' }}/>
-        <div style={{ position:'absolute',width:500,height:500,borderRadius:'50%',bottom:-150,left:-120,background:'radial-gradient(circle,rgba(45,106,63,0.2) 0%,transparent 65%)',animation:'orb2 15s ease-in-out infinite' }}/>
-        <div style={{ position:'absolute',width:300,height:300,borderRadius:'50%',top:'35%',right:'8%',background:'radial-gradient(circle,rgba(143,188,143,0.08) 0%,transparent 65%)',animation:'orb3 9s ease-in-out infinite' }}/>
-        <div style={{ position:'absolute',width:200,height:200,borderRadius:'50%',top:'60%',left:'30%',background:'radial-gradient(circle,rgba(201,151,58,0.07) 0%,transparent 65%)',animation:'orb1 11s ease-in-out 3s infinite' }}/>
-      </div>
-
-      {/* ── Main content ── */}
-      <div style={{ flex:1, display:'flex', alignItems:'center', maxWidth:1200, margin:'0 auto', padding:'110px 5vw 60px', width:'100%', position:'relative', zIndex:1 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'center', width:'100%' }}>
-
-          {/* ── LEFT: Text ── */}
-          <div>
-            {/* Badge */}
-            <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(201,151,58,0.12)', border:'1px solid rgba(201,151,58,0.35)', color:'#c9973a', padding:'6px 18px', borderRadius:50, fontSize:'0.65rem', fontWeight:700, letterSpacing:'2.5px', textTransform:'uppercase', marginBottom:28, animation:'fadeUp 0.7s ease 0.1s both', opacity:0 }}>
-              <span style={{ width:7,height:7,borderRadius:'50%',background:'#c9973a',animation:'pulse 2s ease infinite',flexShrink:0 }}/>
-              Trusted Since 2026 · Your Financial Safety Net
-            </div>
-
-            {/* Headline */}
-            <h1 style={{ fontFamily:'Fraunces,serif', fontSize:'clamp(2.6rem,4.5vw,4rem)', fontWeight:900, color:'white', lineHeight:1.05, margin:'0 0 22px', animation:'fadeUp 0.7s ease 0.22s both', opacity:0 }}>
-              Unite. Support.<br/>
-              <em style={{ color:'#c9973a', fontStyle:'italic', position:'relative' }}>Prosper</em>
-              <br/>as a Family.
-            </h1>
-
-            {/* Sub */}
-            <p style={{ color:'rgba(255,255,255,0.65)', fontSize:'1.05rem', lineHeight:2, maxWidth:480, margin:'0 0 28px', animation:'fadeUp 0.7s ease 0.36s both', opacity:0, fontWeight:500 }}>
-              MUS Welfare Organization is Pakistan's trusted family welfare circle. We pool resources from job holders and students to create a transparent, community-managed fund that supports members in times of need — building financial security together.
-            </p>
-
-            {/* Why choose us - Quick highlight */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:40, animation:'fadeUp 0.7s ease 0.42s both', opacity:0 }}>
-              {[
-                { icon:'🛡️', text:'100% Transparent' },
-                { icon:'🤝', text:'Community Driven' },
-                { icon:'⚡', text:'Quick Support' },
-                { icon:'📊', text:'Verified Members' },
-              ].map(({ icon, text }) => (
-                <div key={text} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(255,255,255,0.08)', borderRadius:10, border:'1px solid rgba(201,151,58,0.2)', backdropFilter:'blur(8px)' }}>
-                  <span style={{ fontSize:'1.2rem' }}>{icon}</span>
-                  <span style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.8)', fontWeight:600 }}>{text}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA buttons */}
-            <div style={{ display:'flex', gap:14, flexWrap:'wrap', marginBottom:48, animation:'fadeUp 0.7s ease 0.5s both', opacity:0 }}>
-              <a href="/signup" style={{ padding:'14px 32px', borderRadius:12, background:'linear-gradient(135deg,#c9973a,#e8b84b)', color:'#0f1a10', fontWeight:700, fontSize:'0.95rem', textDecoration:'none', fontFamily:'Sora,sans-serif', boxShadow:'0 6px 24px rgba(201,151,58,0.45)', transition:'all 0.22s', display:'inline-flex', alignItems:'center', gap:8 }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 32px rgba(201,151,58,0.55)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 6px 24px rgba(201,151,58,0.45)'; }}
-              >
-                Join as Member →
-              </a>
-              <button onClick={() => document.querySelector('#about')?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'14px 28px', borderRadius:12, background:'rgba(255,255,255,0.07)', color:'white', fontWeight:600, fontSize:'0.95rem', border:'1px solid rgba(255,255,255,0.18)', cursor:'pointer', fontFamily:'Sora,sans-serif', transition:'all 0.22s' }}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.14)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.3)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.18)'; }}
-              >
-                Learn More
-              </button>
-            </div>
-
-            {/* Animated counters */}
-            <div style={{ display:'flex', gap:0, animation:'fadeUp 0.7s ease 0.65s both', opacity:0 }}>
-              {[
-                { val: count.members, suffix:'+', label:'Active Members', icon:'👥' },
-                { val: count.fund,    suffix:'k+', label:'PKR Fund', prefix:'PKR ', icon:'💰' },
-                { val: count.months,  suffix:'',   label:'Months Active', icon:'📅' },
-              ].map(({ val, suffix, label, prefix, icon }, i) => (
-                <div key={label} style={{ flex:1, textAlign: i===1?'center':'left', paddingRight: i===0?24:0, paddingLeft: i===2?24:0, borderLeft: i>0?'1px solid rgba(255,255,255,0.1)':'' }}>
-                  <div style={{ fontSize:'1.2rem', marginBottom:8 }}>{icon}</div>
-                  <div style={{ fontFamily:'Fraunces,serif', fontSize:'clamp(1.6rem,2.5vw,2.2rem)', fontWeight:900, color:'white', lineHeight:1 }}>
-                    {prefix}{val}{suffix}
-                  </div>
-                  <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.4)', marginTop:5, letterSpacing:'0.8px', textTransform:'uppercase' }}>{label}</div>
-                </div>
-              ))}
-            </div>
+    <section id="home" className="hero">
+      <div className="hero-glow" />
+      <div className="container hero-grid">
+        <div className="hero-copy">
+          <div className="eyebrow rise" style={{ animationDelay: '0.2s' }}>
+            <span className="dot" /> Family welfare circle · Est. 2026
           </div>
 
-          {/* ── RIGHT: Logo + card ── */}
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:24, animation:'slideInRight 0.8s ease 0.4s both', opacity:0 }}>
+          <h1 className="hero-title rise" style={{ animationDelay: '0.45s' }}>
+            Unite. Support.<br /><span className="accent">Prosper</span> as a family.
+          </h1>
 
-            {/* Logo showcase */}
-            <div style={{ position:'relative' }}>
-              {/* Outer glow ring */}
-              <div style={{ position:'absolute', inset:-16, borderRadius:'50%', background:'radial-gradient(circle,rgba(201,151,58,0.25) 0%,transparent 70%)', animation:'glow 3s ease-in-out infinite' }}/>
-              {/* Dashed ring */}
-              <svg style={{ position:'absolute', inset:-8, width:'calc(100% + 16px)', height:'calc(100% + 16px)', animation:'spin 20s linear infinite' }} viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="96" fill="none" stroke="rgba(201,151,58,0.4)" strokeWidth="2" strokeDasharray="8 6"/>
-              </svg>
-              {/* Logo image */}
-              <div style={{ width:200, height:200, borderRadius:'50%', overflow:'hidden', border:'4px solid rgba(201,151,58,0.6)', boxShadow:'0 0 0 8px rgba(201,151,58,0.12), 0 24px 64px rgba(0,0,0,0.5)', position:'relative', zIndex:1, transition:'transform 0.3s ease' }}>
-                <img src="/mus.jpg" alt="MUS Welfare Organization" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-              </div>
-              {/* Verified badge */}
-              <div style={{ position:'absolute', bottom:8, right:8, zIndex:2, width:40, height:40, borderRadius:'50%', background:'linear-gradient(135deg,#c9973a,#e8b84b)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(201,151,58,0.5)', border:'3px solid #081a0c', animation:'pulse 2s ease-in-out infinite' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-              </div>
-            </div>
+          <p className="hero-sub rise" style={{ animationDelay: '0.75s' }}>
+            A transparent, community-managed fund. Job holders and students pool
+            small monthly contributions, so help is there when a member needs it.
+          </p>
 
-            {/* Info card */}
-            <div style={{ background:'rgba(255,255,255,0.06)', backdropFilter:'blur(20px)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'28px 28px', width:'100%', maxWidth:360, boxShadow:'0 20px 60px rgba(0,0,0,0.3)', animation:'slideUp 0.7s ease 0.6s both', opacity:0, transition:'all 0.3s ease', cursor:'default' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
-                <div style={{ fontSize:'1.2rem' }}>✨</div>
-                <div style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.35)', letterSpacing:'2.5px', textTransform:'uppercase', fontWeight:700 }}>Why Choose MUS</div>
+          <div className="rise" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', animationDelay: '1s' }}>
+            <a href="/signup" className="btn">Join as member</a>
+            <button className="btn btn-ghost" onClick={() => document.querySelector('#about')?.scrollIntoView({ behavior: 'smooth' })}>
+              Learn more
+            </button>
+          </div>
+
+          <div className="stats rise" style={{ animationDelay: '1.3s' }}>
+            {stats.map(({ val, suffix, label, prefix }) => (
+              <div key={label} className="stat">
+                <div className="stat-num">{prefix}{val}{suffix}</div>
+                <div className="stat-label">{label}</div>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {[
-                  { emoji:'🏦', title:'Fully Transparent', desc:'Every rupee tracked & visible' },
-                  { emoji:'⚡', title:'Quick Disbursement', desc:'Support when you need it most' },
-                  { emoji:'🛡️', title:'Verified Members', desc:'Screened & approved by committee' },
-                  { emoji:'🤝', title:'Community Focus', desc:'Collective strength & support' },
-                ].map(({ emoji, title, desc }) => (
-                  <div key={title} style={{ padding:'12px 14px', background:'rgba(255,255,255,0.04)', borderRadius:10, border:'1px solid rgba(255,255,255,0.08)', transition:'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(201,151,58,0.3)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'; }}
-                  >
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
-                      <span style={{ fontSize:'1rem' }}>{emoji}</span>
-                      <span style={{ fontSize:'0.8rem', color:'#c9973a', fontWeight:700 }}>{title}</span>
-                    </div>
-                    <div style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.5)', paddingLeft:24 }}>{desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* ── Scroll indicator ── */}
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, paddingBottom:28, position:'relative', zIndex:1, animation:'bounce 2.5s ease-in-out infinite', opacity:0.45 }}>
-        <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.5)', letterSpacing:'2.5px', textTransform:'uppercase' }}>Scroll</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        {/* One-side-lit logo render */}
+        <div className="hero-visual rise" style={{ animationDelay: '0.6s', animationDuration: '2s' }}>
+          <div className="render">
+            <img src="/mus.jpg" alt="MUS Welfare Organization" />
+            <div className="render-shade" />
+            <div className="render-rim" />
+          </div>
+          <div className="render-floor" />
+        </div>
       </div>
     </section>
   );
 }
 
-/* ─── About Section ─── */
+/* ─── About ─── */
 function About() {
   const values = [
-    { icon: '🤝', title: 'Community First',    desc: 'Every decision benefits the collective. Your voice matters in how we manage and distribute the fund.' },
-    { icon: '🔍', title: 'Complete Transparency',  desc: 'Monthly fund reports, detailed expense tracking, and real-time member access. Nothing hidden.' },
-    { icon: '🛡️', title: 'Verified Members',   desc: 'Every member undergoes committee review. We ensure trust and accountability at every level.' },
-    { icon: '📈', title: 'Growing Stronger',   desc: 'As our community grows, so does our collective fund and ability to support each other in times of need.' },
+    { title: 'Community first', desc: 'Every decision benefits the collective. Members have a voice in how the fund is managed and used.' },
+    { title: 'Complete transparency', desc: 'Monthly fund reports and detailed expense tracking, visible to every member.' },
+    { title: 'Verified members', desc: 'Each member is reviewed by the committee, so trust and accountability hold at every level.' },
+    { title: 'Growing stronger', desc: 'As the community grows, so does the fund and our ability to support one another.' },
   ];
   return (
-    <Section id="about" bg="#f8faf5">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
+    <Section id="about" alt>
+      <div className="grid2" style={{ alignItems: 'start' }}>
         <div>
-          <SectionTag>About MUS Welfare</SectionTag>
-          <h2 style={{ fontFamily: "Fraunces,serif", fontSize: "clamp(2rem,3.5vw,2.8rem)", fontWeight: 900, color: "#0f1a10", lineHeight: 1.1, margin: "0 0 20px" }}>
-            Your financial safety net in <em style={{ color: "#1a4a24", fontStyle: "italic" }}>uncertain times.</em>
-          </h2>
-          <p style={{ color: "#52695a", fontSize: "0.95rem", lineHeight: 1.85, margin: "0 0 16px" }}>
-            MUS Welfare Organization was founded to create a reliable, transparent fund managed by our community. Whether you're a working professional or a student, we believe everyone deserves access to genuine financial support backed by people who care.
+          <Eyebrow>About</Eyebrow>
+          <h2 className="h2">A financial safety net, <span className="dim">built by the people it protects.</span></h2>
+          <p className="body">
+            MUS Welfare Organization was founded to create a reliable, transparent fund managed by
+            its own community. Whether you are a working professional or a student, you contribute
+            what you can and are backed by people who care.
           </p>
-          <p style={{ color: "#52695a", fontSize: "0.95rem", lineHeight: 1.85, margin: "0 0 16px" }}>
-            Our members contribute monthly — job holders from PKR 500, students from PKR 100 — and the pooled fund is disbursed to support members facing medical emergencies, education costs, or family hardships.
+          <p className="body">
+            Members contribute monthly — job holders from PKR 500, students from PKR 100 — and the
+            pooled fund supports members facing medical emergencies, education costs, or family hardship.
           </p>
-          <p style={{ color: "#52695a", fontSize: "0.95rem", lineHeight: 1.85, margin: "0 0 32px" }}>
-            With verified membership, transparent governance, and swift disbursement, MUS Welfare is changing how communities support each other.
-          </p>
-          <a href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", borderRadius: 12, background: "linear-gradient(135deg,#1a4a24,#2d6a3f)", color: "white", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none", fontFamily: "Sora,sans-serif", boxShadow: "0 4px 16px rgba(26,74,36,0.3)", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,74,36,0.4)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,74,36,0.3)"; }}
-          >
-            Become a Member Today →
-          </a>
+          <a href="/signup" className="btn" style={{ marginTop: 24 }}>Become a member</a>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {values.map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: "white", borderRadius: 16, padding: "22px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid rgba(26,74,36,0.08)", transition: "transform 0.3s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s cubic-bezier(0.22,1,0.36,1)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.12)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"; }}
-            >
-              <div style={{ fontSize: "2rem", marginBottom: 12 }}>{icon}</div>
-              <div style={{ fontFamily: "Fraunces,serif", fontWeight: 700, fontSize: "0.95rem", color: "#0f1a10", marginBottom: 8 }}>{title}</div>
-              <div style={{ fontSize: "0.8rem", color: "#6b7c6d", lineHeight: 1.6 }}>{desc}</div>
+
+        <div className="list">
+          {values.map(({ title, desc }, i) => (
+            <div key={title} className="list-row">
+              <div className="list-n">0{i + 1}</div>
+              <div>
+                <div className="list-title">{title}</div>
+                <div className="list-desc">{desc}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -427,202 +220,107 @@ function About() {
   );
 }
 
-/* ─── How It Works Section ─── */
+/* ─── How it works ─── */
 function HowItWorks() {
   const steps = [
-    { n: "01", title: "Apply for Membership",   desc: "Fill out a quick signup form with your details. Choose your membership type — Job Holder (PKR 500) or Student (PKR 100).", icon: "📝" },
-    { n: "02", title: "Committee Review",       desc: "Our admin committee reviews your application to verify authenticity and eligibility. Approval usually takes 24-48 hours.", icon: "✅" },
-    { n: "03", title: "Start Contributing",     desc: "Once approved, your membership is active. Record your monthly contribution through the member dashboard securely.", icon: "💳" },
-    { n: "04", title: "Access Support",         desc: "Need help? Apply for disbursement with your request. Get transparent processing and community backing for your needs.", icon: "🤲" },
+    { n: '01', title: 'Apply', desc: 'Fill out the signup form and choose a membership type: Job Holder (PKR 500) or Student (PKR 100).', meta: 'About 2 minutes' },
+    { n: '02', title: 'Review', desc: 'The committee verifies your application for authenticity and eligibility.', meta: 'Usually 24–48 hours' },
+    { n: '03', title: 'Contribute', desc: 'Once approved, record your monthly contribution through the member dashboard.', meta: 'PKR 100–500 monthly' },
+    { n: '04', title: 'Receive support', desc: 'Need help? Submit a disbursement request and get transparent processing with community backing.', meta: 'Community-backed' },
   ];
   return (
-    <Section id="how" bg="white">
-      <div style={{ textAlign: "center", marginBottom: 56 }}>
-        <SectionTag>How It Works</SectionTag>
-        <h2 style={{ fontFamily: "Fraunces,serif", fontSize: "clamp(2rem,3.5vw,2.8rem)", fontWeight: 900, color: "#0f1a10", lineHeight: 1.1, margin: "0 auto 16px", maxWidth: 560 }}>
-          Simple steps to financial security.
-        </h2>
-        <p style={{ color: "#6b7c6d", fontSize: "0.95rem", maxWidth: 560, margin: "0 auto", lineHeight: 1.8 }}>
-          From signup to your first contribution takes just 5 minutes. Join thousands of members already experiencing the peace of mind that comes with community support.
-        </p>
+    <Section id="how">
+      <div style={{ maxWidth: 640, marginBottom: 96 }}>
+        <Eyebrow>How it works</Eyebrow>
+        <h2 className="h2">Four quiet steps.</h2>
+        <p className="body">From signup to your first contribution takes only a few minutes.</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 24 }}>
-        {steps.map(({ n, title, desc, icon }, i) => (
-          <div key={n} style={{ position: "relative", background: "#f8faf5", borderRadius: 20, padding: "32px 24px", border: "1.5px solid rgba(26,74,36,0.12)", transition: "all 0.3s cubic-bezier(0.22,1,0.36,1)", animation:`slideUp 0.6s ease ${0.1 + i * 0.1}s both` }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-8px)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(26,74,36,0.15)"; e.currentTarget.style.borderColor = "rgba(26,74,36,0.25)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; e.currentTarget.style.borderColor = "rgba(26,74,36,0.12)"; }}
-          >
-            {i < steps.length - 1 && (
-              <div style={{ position: "absolute", top: "50%", right: -16, transform: "translateY(-50%)", width: 32, height: 2, background: "linear-gradient(90deg,rgba(26,74,36,0.3) 0%,transparent 100%)", display: "none" }} className="step-arrow"/>
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#e8f5eb,#c8e6c9)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", flexShrink: 0, boxShadow: "0 4px 12px rgba(45,106,63,0.15)" }}>{icon}</div>
-              <div style={{ fontFamily: "Fraunces,serif", fontSize: "2rem", fontWeight: 900, color: "rgba(26,74,36,0.15)", lineHeight: 1 }}>{n}</div>
-            </div>
-            <div style={{ fontFamily: "Fraunces,serif", fontWeight: 700, fontSize: "1.05rem", color: "#0f1a10", marginBottom: 12 }}>{title}</div>
-            <div style={{ fontSize: "0.85rem", color: "#6b7c6d", lineHeight: 1.7, marginBottom: 16 }}>{desc}</div>
-            {i === 0 && <div style={{ paddingTop: 16, borderTop: "1px solid rgba(26,74,36,0.08)" }}>⏱️ Takes ~2 minutes</div>}
-            {i === 1 && <div style={{ paddingTop: 16, borderTop: "1px solid rgba(26,74,36,0.08)" }}>⏱️ Usually 24-48 hours</div>}
-            {i === 2 && <div style={{ paddingTop: 16, borderTop: "1px solid rgba(26,74,36,0.08)" }}>💰 PKR 100–500 monthly</div>}
-            {i === 3 && <div style={{ paddingTop: 16, borderTop: "1px solid rgba(26,74,36,0.08)" }}>✨ Community-backed</div>}
+      <div className="steps">
+        {steps.map(({ n, title, desc, meta }) => (
+          <div key={n} className="step">
+            <div className="step-n">{n}</div>
+            <div className="list-title">{title}</div>
+            <div className="list-desc">{desc}</div>
+            <div className="step-meta">{meta}</div>
           </div>
         ))}
       </div>
-      <div style={{ textAlign: "center", marginTop: 56 }}>
-        <a href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "16px 40px", borderRadius: 12, background: "linear-gradient(135deg,#1a4a24,#2d6a3f)", color: "white", fontWeight: 700, fontSize: "0.96rem", textDecoration: "none", fontFamily: "Sora,sans-serif", boxShadow: "0 4px 20px rgba(26,74,36,0.3)", transition: "all 0.2s" }}
-          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(26,74,36,0.4)"; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(26,74,36,0.3)"; }}
-        >
-          Start Your Journey Today →
-        </a>
+      <div style={{ marginTop: 96 }}>
+        <a href="/signup" className="btn">Start your journey</a>
       </div>
     </Section>
   );
 }
 
-/* ─── Contact Section ─── */
+/* ─── Contact ─── */
 function Contact() {
-  const [form,    setForm]    = useState({ name: "", email: "", message: "" });
-  const [sent,    setSent]    = useState(false);
-  const [focused, setFocused] = useState("");
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [sent, setSent] = useState(false);
 
   const handleSubmit = e => {
     e.preventDefault();
     if (form.name && form.email && form.message) setSent(true);
   };
 
-  const inputSt = (field) => ({
-    width: "100%", padding: "12px 14px",
-    border: "1.5px solid " + (focused === field ? "#1a4a24" : "rgba(26,74,36,0.18)"),
-    borderRadius: 10, fontSize: "0.9rem", color: "#0f1a10",
-    outline: "none", fontFamily: "Sora,sans-serif", background: focused === field ? "#fafff8" : "#f8faf6",
-    boxShadow: focused === field ? "0 0 0 3px rgba(26,74,36,0.08)" : "none",
-    transition: "all 0.2s", boxSizing: "border-box",
-  });
+  const rows = [
+    { label: 'Email', node: <a href="mailto:committee@muswelfare.org">committee@muswelfare.org</a> },
+    { label: 'Location', node: <span>Pakistan</span> },
+    { label: 'Response time', node: <span>Within 24 hours</span> },
+    {
+      label: 'Connect',
+      node: (
+        <span className="links">
+          <a href="https://chat.whatsapp.com/EJYpB826XNBKQ2ouxDnI4O" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a href="https://www.facebook.com/share/g/1EdsUY4W7f/" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a href="tel:+923485185767">Call</a>
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <Section id="contact" bg="#f8faf5">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
-        {/* Left */}
-        <div style={{ animation: 'slideUp 0.6s ease 0.2s both' }}>
-          <SectionTag>Questions?</SectionTag>
-          <h2 style={{ fontFamily: "Fraunces,serif", fontSize: "clamp(2rem,3.5vw,2.6rem)", fontWeight: 900, color: "#0f1a10", lineHeight: 1.1, margin: "0 0 20px" }}>
-            Reach out to our committee.
-          </h2>
-          <p style={{ color: "#52695a", fontSize: "0.95rem", lineHeight: 1.85, margin: "0 0 36px" }}>
-            Questions about membership, contribution amounts, fund management, or how to apply for support? Our executive committee is here to help and will respond within 24 hours.
+    <Section id="contact" alt>
+      <div className="grid2" style={{ alignItems: 'start' }}>
+        <div>
+          <Eyebrow>Contact</Eyebrow>
+          <h2 className="h2">Reach out to the committee.</h2>
+          <p className="body">
+            Questions about membership, contribution amounts, fund management, or applying for support?
+            We are happy to help.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-            {/* Email */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "white", borderRadius: 12, border: "1px solid rgba(26,74,36,0.1)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,74,36,0.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; }}
-            >
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#e8f5eb,#d1f0da)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>📧</div>
-              <div>
-                <div style={{ fontSize: "0.68rem", color: "#8a9e8c", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 2 }}>Email</div>
-                <a href="mailto:committee@muswelfare.org" style={{ fontSize: "0.88rem", color: "#1a4a24", fontWeight: 600, textDecoration: "none" }}>committee@muswelfare.org</a>
+          <div className="list" style={{ marginTop: 48 }}>
+            {rows.map(({ label, node }) => (
+              <div key={label} className="contact-row">
+                <div className="contact-label">{label}</div>
+                <div className="contact-val">{node}</div>
               </div>
-            </div>
-
-            {/* Location */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "white", borderRadius: 12, border: "1px solid rgba(26,74,36,0.1)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,74,36,0.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; }}
-            >
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#e8f5eb,#d1f0da)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>📍</div>
-              <div>
-                <div style={{ fontSize: "0.68rem", color: "#8a9e8c", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 2 }}>Location</div>
-                <div style={{ fontSize: "0.88rem", color: "#0f1a10", fontWeight: 600 }}>Pakistan</div>
-              </div>
-            </div>
-
-            {/* Response time */}
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", background: "linear-gradient(135deg,rgba(26,74,36,0.05),rgba(45,106,63,0.05))", borderRadius: 12, border: "1.5px solid rgba(26,74,36,0.15)", transition: "all 0.2s" }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#e8f5eb,#d1f0da)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>⚡</div>
-              <div>
-                <div style={{ fontSize: "0.68rem", color: "#8a9e8c", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 2 }}>Response Time</div>
-                <div style={{ fontSize: "0.88rem", color: "#0f1a10", fontWeight: 600 }}>Within 24 hours</div>
-              </div>
-            </div>
-
-            {/* Social icon row */}
-            <div style={{ padding: "20px 20px", background: "white", borderRadius: 12, border: "1px solid rgba(26,74,36,0.1)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-              <div style={{ fontSize: "0.68rem", color: "#8a9e8c", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Connect With Us</div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-
-                {/* WhatsApp */}
-                <a href="https://chat.whatsapp.com/EJYpB826XNBKQ2ouxDnI4O" target="_blank" rel="noopener noreferrer" title="WhatsApp"
-                  style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg,#25d366,#128c7e)", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", boxShadow: "0 10px 28px rgba(37,211,102,0.18)", willChange: "transform" }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 36px rgba(37,211,102,0.35)"; e.currentTarget.style.opacity = "1"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 10px 28px rgba(37,211,102,0.18)"; e.currentTarget.style.opacity = "1"; }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
-                  </svg>
-                </a>
-
-                {/* Facebook */}
-                <a href="https://www.facebook.com/share/g/1EdsUY4W7f/" target="_blank" rel="noopener noreferrer" title="Facebook"
-                  style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg,#1877f2,#0d5dbf)", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", boxShadow: "0 10px 28px rgba(24,119,242,0.18)", willChange: "transform" }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 36px rgba(24,119,242,0.35)"; e.currentTarget.style.opacity = "1"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 10px 28px rgba(24,119,242,0.18)"; e.currentTarget.style.opacity = "1"; }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </a>
-
-                {/* Phone */}
-                <a href="tel:+923485185767" title="Call us"
-                  style={{ width: 52, height: 52, borderRadius: 16, background: "linear-gradient(135deg,#1a4a24,#2d6a3f)", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", boxShadow: "0 10px 28px rgba(26,74,36,0.18)", willChange: "transform" }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 36px rgba(26,74,36,0.35)"; e.currentTarget.style.opacity = "1"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 10px 28px rgba(26,74,36,0.18)"; e.currentTarget.style.opacity = "1"; }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                  </svg>
-                </a>
-
-              </div>
-            </div>
-
+            ))}
           </div>
         </div>
 
-        {/* Right — form */}
-        <div style={{ background: "white", borderRadius: 20, padding: "40px 36px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", border: "1px solid rgba(26,74,36,0.08)", animation: 'slideUp 0.6s ease 0.3s both' }}>
+        <div>
           {sent ? (
-            <div style={{ textAlign: "center", padding: "40px 0", animation: 'slideUp 0.6s ease both' }}>
-              <div style={{ fontSize: "3.5rem", marginBottom: 16, animation: 'pulse 1s ease 0.5s infinite' }}>✅</div>
-              <h3 style={{ fontFamily: "Fraunces,serif", fontSize: "1.3rem", fontWeight: 700, color: "#1a4a24", marginBottom: 8 }}>Thank You!</h3>
-              <p style={{ color: "#6b7c6d", fontSize: "0.9rem", lineHeight: 1.6 }}>Your message has been received. Our committee will review it and get back to you within 24 hours.</p>
+            <div style={{ padding: '40px 0' }}>
+              <div className="eyebrow"><span className="dot" /> Received</div>
+              <h3 className="h3">Thank you.</h3>
+              <p className="body">Your message has been received. The committee will get back to you within 24 hours.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate>
-              <h3 style={{ fontFamily: "Fraunces,serif", fontSize: "1.3rem", fontWeight: 700, color: "#0f1a10", margin: "0 0 28px" }}>Send us a Message</h3>
-              <div style={{ marginBottom: 18 }}>
-                <label htmlFor="contact-name" style={{ display: "block", marginBottom: 6, fontSize: "0.72rem", fontWeight: 700, color: "#52695a", textTransform: "uppercase", letterSpacing: "0.8px" }}>Full Name</label>
-                  <input id="contact-name" name="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" required
-                    style={inputSt("name")} onFocus={() => setFocused("name")} onBlur={() => setFocused("")}/>
-              </div>
-              <div style={{ marginBottom: 18 }}>
-                <label htmlFor="contact-email" style={{ display: "block", marginBottom: 6, fontSize: "0.72rem", fontWeight: 700, color: "#52695a", textTransform: "uppercase", letterSpacing: "0.8px" }}>Email Address</label>
-                <input id="contact-email" name="email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="sultanyasir990@@email.com" required
-                  style={inputSt("email")} onFocus={() => setFocused("email")} onBlur={() => setFocused("")}/>
-              </div>
-              <div style={{ marginBottom: 28 }}>
-                <label htmlFor="contact-message" style={{ display: "block", marginBottom: 6, fontSize: "0.72rem", fontWeight: 700, color: "#52695a", textTransform: "uppercase", letterSpacing: "0.8px" }}>Message</label>
-                <textarea id="contact-message" name="message" value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tell us about your inquiry..." rows={4} required
-                  style={{ ...inputSt("message"), resize: "vertical", minHeight: 110 }} onFocus={() => setFocused("message")} onBlur={() => setFocused("")}/>
-              </div>
-              <button type="submit" style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg,#1a4a24,#2d6a3f)", color: "white", border: "none", borderRadius: 10, fontWeight: 700, fontSize: "0.94rem", cursor: "pointer", fontFamily: "Sora,sans-serif", boxShadow: "0 4px 16px rgba(26,74,36,0.28)", transition: "all 0.2s" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 7px 22px rgba(26,74,36,0.38)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,74,36,0.28)"; }}
-              >
-                Send Message →
-              </button>
+              <h3 className="h3" style={{ marginBottom: 40 }}>Send a message</h3>
+              <label htmlFor="contact-name" className="field-label">Full name</label>
+              <input id="contact-name" className="field" value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" required />
+
+              <label htmlFor="contact-email" className="field-label">Email address</label>
+              <input id="contact-email" type="email" className="field" value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@email.com" required />
+
+              <label htmlFor="contact-message" className="field-label">Message</label>
+              <textarea id="contact-message" rows={4} className="field" value={form.message}
+                onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tell us about your inquiry" required />
+
+              <button type="submit" className="btn" style={{ marginTop: 32 }}>Send message</button>
             </form>
           )}
         </div>
@@ -633,197 +331,208 @@ function Contact() {
 
 /* ─── Footer ─── */
 function Footer() {
+  const scrollMap = { Home: '#home', About: '#about', 'How It Works': '#how', Contact: '#contact' };
   return (
-    <footer style={{ background: "linear-gradient(180deg,#081a0c,#0a1f0e)", padding: "48px 5vw 28px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 48, marginBottom: 40 }}>
-          {/* Brand */}
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-grid">
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="20" height="20" viewBox="0 0 60 60">
-                  <path d="M10 42 Q7 25 22 14 Q30 8 40 13 L36 20 Q28 11 20 20 Q7 30 15 44Z" fill="white"/>
-                  <path d="M50 18 Q53 35 38 46 Q30 52 20 47 L24 40 Q32 49 40 40 Q53 30 45 16Z" fill="#8fbc8f"/>
-                  <ellipse cx="30" cy="32" rx="9" ry="6" fill="#c9973a"/>
-                </svg>
-              </div>
+            <div className="brand" style={{ marginBottom: 20 }}>
+              <OrgLogo size={34} />
               <div>
-                <div style={{ fontFamily: "Fraunces,serif", fontWeight: 900, fontSize: "1rem", color: "white" }}>MUS Welfare</div>
-                <div style={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.35)", letterSpacing: "2.5px", textTransform: "uppercase" }}>Organization</div>
+                <div className="brand-name">MUS Welfare</div>
+                <div className="brand-sub">Organization</div>
               </div>
             </div>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.85rem", lineHeight: 1.8, maxWidth: 300 }}>
-              A trusted family welfare circle — pooling resources, building futures, and strengthening our community together.
+            <p className="footer-text" style={{ maxWidth: 320 }}>
+              A trusted family welfare circle — pooling resources and strengthening our community together.
             </p>
           </div>
-          {/* Quick links */}
           <div>
-            <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.35)", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>Quick Links</div>
-            {["Home","About","How It Works","Contact"].map(l => (
-              <button key={l} onClick={() => document.querySelector("#" + l.toLowerCase().replace(/ /g,"").replace("itworks","how"))?.scrollIntoView({ behavior: "smooth" })} style={{ display: "block", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", padding: "5px 0", fontFamily: "Sora,sans-serif", transition: "color 0.2s", textAlign: "left" }}
-                onMouseEnter={e => e.currentTarget.style.color = "white"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
-              >{l}</button>
+            <div className="footer-head">Quick links</div>
+            {Object.entries(scrollMap).map(([l, href]) => (
+              <button key={l} className="footer-link" onClick={() => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })}>{l}</button>
             ))}
           </div>
-          {/* Member */}
           <div>
-            <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.35)", letterSpacing: "2px", textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>Members</div>
-            {[["Log In","/login"],["Sign Up","/signup"]].map(([l,h]) => (
-              <a key={l} href={h} style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: "0.85rem", padding: "5px 0", textDecoration: "none", fontFamily: "Sora,sans-serif", transition: "color 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.color = "white"}
-                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
-              >{l}</a>
-            ))}
+            <div className="footer-head">Members</div>
+            <a href="/login" className="footer-link">Log In</a>
+            <a href="/signup" className="footer-link">Sign Up</a>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.75rem", margin: 0 }}>
-            © {new Date().getFullYear()} MUS Welfare Organization. All rights reserved.
-          </p>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.75rem", margin: 0 }}>
-            Executive Committee 2026–2027 • Developed by Yasir Sultan
-          </p>
-          {/* Social icons in footer */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <a href="https://chat.whatsapp.com/EJYpB826XNBKQ2ouxDnI4O" target="_blank" rel="noopener noreferrer" title="WhatsApp" style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(135deg,#25d366,#128c7e)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", opacity: 0.9, boxShadow: "0 8px 18px rgba(37,211,102,0.24)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(37,211,102,0.35)"; e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 18px rgba(37,211,102,0.24)"; e.currentTarget.style.opacity = "0.9"; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-            </a>
-            <a href="https://www.facebook.com/share/g/1EdsUY4W7f/" target="_blank" rel="noopener noreferrer" title="Facebook" style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(135deg,#1877f2,#0d5dbf)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", opacity: 0.9, boxShadow: "0 8px 18px rgba(24,119,242,0.24)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(24,119,242,0.35)"; e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 18px rgba(24,119,242,0.24)"; e.currentTarget.style.opacity = "0.9"; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            </a>
-            <a href="tel:+923485185767" title="Call us" style={{ width: 34, height: 34, borderRadius: 12, background: "linear-gradient(135deg,#1a4a24,#2d6a3f)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease", opacity: 0.9, boxShadow: "0 8px 18px rgba(26,74,36,0.24)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.08)"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(26,74,36,0.35)"; e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 18px rgba(26,74,36,0.24)"; e.currentTarget.style.opacity = "0.9"; }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            </a>
-          </div>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} MUS Welfare Organization</span>
+          <span>Executive Committee 2026–2027 · Developed by Yasir Sultan</span>
         </div>
       </div>
     </footer>
   );
 }
 
-/* ═══════════════════════════════════════════
-   MAIN LANDING PAGE EXPORT
-═══════════════════════════════════════════ */
-
+/* ═══════════════ MAIN EXPORT ═══════════════ */
 export default function Landing() {
-  const [activeSection, setActiveSection] = useState("home");
+  const [activeSection, setActiveSection] = useState('home');
 
   useEffect(() => {
-    const sections = ["home","about","how","contact"];
+    const ids = ['home', 'about', 'how', 'contact'];
     const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); });
-      },
+      entries => entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); }),
       { threshold: 0.4 }
     );
-    sections.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
+    ids.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    const fadeElements = Array.from(document.querySelectorAll('.fade-element'));
-    const fadeObserver = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          } else {
-            entry.target.classList.remove('visible');
-          }
-        });
-      },
-      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(entry => {
+        if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+      }),
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     );
-    fadeElements.forEach(el => fadeObserver.observe(el));
-    return () => fadeObserver.disconnect();
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="fade-element" style={{ fontFamily: "Sora,sans-serif" }}>
+    <div className="mus">
       <style>{`
-        .fade-element {
-          opacity: 0;
-          transform: translateY(18px);
-          transition: opacity 0.85s ease, transform 0.85s ease;
-          will-change: opacity, transform;
+        .mus {
+          --bg: #08080a; --bg2: #0d0d10; --line: rgba(255,255,255,0.08);
+          --text: #c4c5cb; --dim: #7b7c85; --hi: #f3f3f5; --accent: #39ffb0;
+          font-family: Sora, sans-serif; background: var(--bg); color: var(--text);
+          -webkit-font-smoothing: antialiased; overflow-x: hidden;
         }
-        .fade-element.visible {
-          opacity: 1;
-          transform: translateY(0);
+        .mus * { box-sizing: border-box; }
+        .mus button { font-family: inherit; }
+        .mus a { color: inherit; }
+        .container { max-width: 1200px; margin: 0 auto; width: 100%; }
+
+        /* reveal */
+        .reveal { opacity: 0; transform: translateY(24px); transition: opacity 1.4s cubic-bezier(.22,1,.36,1), transform 1.4s cubic-bezier(.22,1,.36,1); }
+        .reveal.visible { opacity: 1; transform: none; }
+        .rise { opacity: 0; animation: rise 1.4s cubic-bezier(.22,1,.36,1) forwards; }
+        @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+        @keyframes breathe { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+
+        /* type */
+        .eyebrow { display: inline-flex; align-items: center; gap: 12px; font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-bottom: 32px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: breathe 4s ease infinite; }
+        .accent { color: var(--accent); }
+        .dim { color: var(--dim); }
+        .h2 { font-size: clamp(2rem, 3.6vw, 3.2rem); font-weight: 300; line-height: 1.15; letter-spacing: -0.02em; color: var(--hi); margin: 0 0 32px; }
+        .h3 { font-size: 1.6rem; font-weight: 300; color: var(--hi); margin: 0 0 16px; letter-spacing: -0.01em; }
+        .body { font-size: .98rem; line-height: 2; color: var(--text); margin: 0 0 20px; max-width: 520px; font-weight: 300; }
+
+        /* buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 15px 34px; background: var(--accent); color: #04110b; font-weight: 600; font-size: .85rem; letter-spacing: .5px; text-decoration: none; border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; transition: box-shadow .6s ease, transform .6s ease, background .6s ease; }
+        .btn:hover { box-shadow: 0 0 40px rgba(57,255,176,.35); transform: translateY(-1px); }
+        .btn-sm { padding: 9px 22px; }
+        .btn-ghost { background: transparent; color: var(--hi); border-color: rgba(255,255,255,.2); }
+        .btn-ghost:hover { background: rgba(255,255,255,.05); box-shadow: none; }
+        .btn-text { color: var(--text); text-decoration: none; font-size: .85rem; padding: 8px 16px; transition: color .4s; }
+        .btn-text:hover { color: var(--hi); }
+
+        /* nav */
+        .nav { position: fixed; inset: 0 0 auto 0; z-index: 1000; padding: 0 6vw; transition: background .8s ease, border-color .8s ease; border-bottom: 1px solid transparent; }
+        .nav-solid { background: rgba(8,8,10,.88); backdrop-filter: blur(18px); border-bottom-color: var(--line); }
+        .nav-inner { max-width: 1200px; margin: 0 auto; height: 80px; display: flex; align-items: center; justify-content: space-between; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-name { font-weight: 400; font-size: .95rem; color: var(--hi); line-height: 1.1; }
+        .brand-sub { font-size: .55rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-top: 3px; }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-link { background: none; border: none; cursor: pointer; padding: 8px 16px; color: var(--dim); font-size: .82rem; transition: color .5s; position: relative; }
+        .nav-link:hover, .nav-link.active { color: var(--hi); }
+        .nav-link.active::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 0; height: 1px; background: var(--accent); }
+        .nav-auth { display: flex; align-items: center; gap: 8px; }
+        .hamburger { display: none; background: none; border: none; color: var(--hi); cursor: pointer; padding: 6px; }
+        .mobile-menu { padding: 8px 0 32px; border-top: 1px solid var(--line); }
+        .mobile-link { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 16px 0; color: var(--text); font-size: 1rem; font-weight: 300; border-bottom: 1px solid var(--line); }
+
+        /* sections */
+        .section { padding: 180px 6vw; background: var(--bg); }
+        .section-alt { background: var(--bg2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 120px; }
+
+        /* hero */
+        .hero { min-height: 100vh; position: relative; display: flex; align-items: center; padding: 140px 6vw 100px; overflow: hidden; background: var(--bg); }
+        .hero-glow { position: absolute; width: 900px; height: 900px; top: -200px; right: -150px; pointer-events: none; background: radial-gradient(circle at 30% 40%, rgba(255,255,255,.07), transparent 60%); }
+        .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 80px; align-items: center; position: relative; z-index: 1; }
+        .hero-title { font-size: clamp(2.8rem, 5.6vw, 5.2rem); font-weight: 200; line-height: 1.05; letter-spacing: -0.03em; color: var(--hi); margin: 0 0 40px; }
+        .hero-sub { font-size: 1.02rem; line-height: 2; font-weight: 300; max-width: 470px; margin: 0 0 56px; color: var(--text); }
+        .stats { display: flex; margin-top: 96px; border-top: 1px solid var(--line); padding-top: 36px; }
+        .stat { flex: 1; padding-right: 24px; }
+        .stat + .stat { padding-left: 32px; border-left: 1px solid var(--line); }
+        .stat-num { font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 200; color: var(--hi); letter-spacing: -0.01em; }
+        .stat-label { font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-top: 10px; }
+
+        /* lit-from-the-left render */
+        .hero-visual { display: flex; flex-direction: column; align-items: center; }
+        .render { position: relative; width: min(440px, 80vw); aspect-ratio: 1; border-radius: 50%; overflow: hidden; box-shadow: -30px -10px 120px rgba(255,255,255,.07), 40px 50px 90px rgba(0,0,0,.9); }
+        .render img { width: 100%; height: 100%; object-fit: cover; display: block; filter: contrast(1.05) saturate(.9); }
+        .render-shade { position: absolute; inset: 0; background: linear-gradient(105deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 40%, rgba(0,0,0,.92) 85%); pointer-events: none; }
+        .render-rim { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; box-shadow: inset 3px 0 0 -1px rgba(57,255,176,.55), inset 14px 0 40px -18px rgba(57,255,176,.28); }
+        .render-floor { width: 62%; height: 36px; margin-top: 36px; background: radial-gradient(ellipse at 35% 50%, rgba(0,0,0,.9), transparent 70%); filter: blur(10px); }
+
+        /* about / lists */
+        .list { border-top: 1px solid var(--line); }
+        .list-row { display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid var(--line); }
+        .list-n { font-size: .7rem; letter-spacing: 2px; color: var(--accent); padding-top: 6px; min-width: 28px; }
+        .list-title { font-size: 1.1rem; font-weight: 300; color: var(--hi); margin-bottom: 12px; }
+        .list-desc { font-size: .88rem; line-height: 1.9; color: var(--dim); font-weight: 300; }
+
+        /* steps */
+        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; }
+        .step { border-top: 1px solid var(--line); padding-top: 32px; }
+        .step-n { font-size: 3rem; font-weight: 100; color: rgba(255,255,255,.12); line-height: 1; margin-bottom: 32px; }
+        .step-meta { margin-top: 28px; font-size: .62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+
+        /* contact */
+        .contact-row { display: flex; justify-content: space-between; align-items: baseline; padding: 26px 0; border-bottom: 1px solid var(--line); gap: 24px; }
+        .contact-label { font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); }
+        .contact-val { font-size: .92rem; color: var(--hi); font-weight: 300; text-align: right; }
+        .contact-val a { text-decoration: none; transition: color .4s; }
+        .contact-val a:hover { color: var(--accent); }
+        .links { display: inline-flex; gap: 24px; }
+        .field-label { display: block; font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 10px; }
+        .field { width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,.14); color: var(--hi); font-family: inherit; font-size: .95rem; font-weight: 300; padding: 10px 0 14px; margin-bottom: 36px; outline: none; transition: border-color .6s; resize: vertical; }
+        .field:focus { border-bottom-color: var(--accent); }
+        .field::placeholder { color: #4d4e55; }
+
+        /* footer */
+        .footer { background: var(--bg); border-top: 1px solid var(--line); padding: 96px 6vw 40px; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 64px; margin-bottom: 80px; }
+        .footer-head { font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 20px; }
+        .footer-text { color: var(--dim); font-size: .85rem; line-height: 1.9; font-weight: 300; margin: 0; }
+        .footer-link { display: block; background: none; border: none; cursor: pointer; padding: 6px 0; color: var(--text); font-size: .85rem; font-weight: 300; text-decoration: none; text-align: left; transition: color .4s; }
+        .footer-link:hover { color: var(--accent); }
+        .footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--line); padding-top: 28px; font-size: .72rem; color: var(--dim); }
+
+        /* responsive */
+        @media (max-width: 960px) {
+          .nav-links, .nav-auth { display: none; }
+          .hamburger { display: block; }
+          .section { padding: 112px 6vw; }
+          .grid2, .hero-grid, .footer-grid { grid-template-columns: 1fr; gap: 72px; }
+          .steps { grid-template-columns: 1fr 1fr; gap: 56px 32px; }
+          .hero-visual { order: -1; }
+          .stats { margin-top: 64px; }
         }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+        @media (max-width: 560px) {
+          .steps { grid-template-columns: 1fr; }
+          .stats { flex-direction: column; gap: 28px; }
+          .stat + .stat { padding-left: 0; border-left: none; }
         }
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.05); }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes orb1 {
-          0% { transform: translate(0, 0); }
-          25% { transform: translate(20px, -30px); }
-          50% { transform: translate(-20px, 0); }
-          75% { transform: translate(30px, 20px); }
-          100% { transform: translate(0, 0); }
-        }
-        @keyframes orb2 {
-          0% { transform: translate(0, 0); }
-          25% { transform: translate(-30px, 20px); }
-          50% { transform: translate(20px, 30px); }
-          75% { transform: translate(-20px, -30px); }
-          100% { transform: translate(0, 0); }
-        }
-        @keyframes orb3 {
-          0% { transform: translate(0, 0); }
-          25% { transform: translate(15px, 25px); }
-          50% { transform: translate(-25px, 15px); }
-          75% { transform: translate(25px, -20px); }
-          100% { transform: translate(0, 0); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
-        }
-        @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(201,151,58,0.4), 0 0 40px rgba(201,151,58,0.2); }
-          50% { box-shadow: 0 0 30px rgba(201,151,58,0.6), 0 0 60px rgba(201,151,58,0.3); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(40px); }
-          to { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) {
+          .rise, .reveal, .dot { animation: none; transition: none; opacity: 1; transform: none; }
         }
       `}</style>
-      <Navbar activeSection={activeSection}/>
-      <Hero/>
-      <About/>
-      <HowItWorks/>
-      <Contact/>
-      <Footer/>
+      <Navbar activeSection={activeSection} />
+      <Hero />
+      <About />
+      <HowItWorks />
+      <Contact />
+      <Footer />
     </div>
   );
 }
