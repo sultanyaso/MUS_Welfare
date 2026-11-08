@@ -51,7 +51,10 @@ const CSS = `
 .md-root ::-webkit-scrollbar-track{background:transparent}
 
 /* ───────── Sidebar ───────── */
-.md-side-wrap{width:292px;padding:14px;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;transition:width .28s cubic-bezier(.4,0,.2,1)}
+/* Fixed (not sticky): immune to any parent overflow rule. The spacer reserves the sidebar's width in the layout. */
+.md-spacer{width:292px;flex-shrink:0;transition:width .28s cubic-bezier(.4,0,.2,1)}
+.md-spacer.collapsed{width:106px}
+.md-side-wrap{width:292px;padding:14px;position:fixed;left:0;top:0;z-index:60;height:100vh;height:100dvh;transition:width .28s cubic-bezier(.4,0,.2,1)}
 .md-side-wrap.collapsed{width:106px}
 .md-side{height:100%;display:flex;flex-direction:column;overflow:hidden;position:relative;
   background:linear-gradient(180deg,var(--panel),var(--panel2));
@@ -265,6 +268,7 @@ const CSS = `
 /* Mobile layout is driven by the JS-set .is-mobile class (not only media queries),
    so CSS and the React state can never disagree. Covers phones in portrait AND landscape. */
 .md-root.is-mobile{flex-direction:column}
+.md-root.is-mobile .md-spacer{display:none}
 .md-root.is-mobile .md-topbar{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
   background:rgba(5,5,6,.82);background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .md-root.is-mobile .md-side-wrap,.md-root.is-mobile .md-side-wrap.collapsed{position:fixed;left:0;top:0;bottom:0;height:100vh;height:100dvh;width:min(312px,88vw)!important;min-width:min(312px,88vw)!important;max-width:none!important;flex:none!important;box-sizing:border-box;z-index:8000;
@@ -500,6 +504,7 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
   return (
     <>
       {isMobile && mobileOpen && <div className="md-overlay" onClick={closeMobile}/>}
+      <div className={`md-spacer${collapsed ? ' collapsed' : ''}`} aria-hidden="true"/>
       <div className={`md-side-wrap${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mopen' : ''}`}
         style={isMobile ? { width:'min(312px, 88vw)', minWidth:'min(312px, 88vw)', maxWidth:'none', flex:'none' } : undefined}>
         <aside className={`md-side${collapsed ? ' collapsed' : ''}`} aria-label="Main navigation" style={isMobile ? { width:'100%', minWidth:0, maxWidth:'none' } : undefined}>
