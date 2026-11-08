@@ -676,6 +676,76 @@ function AdminSidebar({
   );
 }
 
+
+/* ═══════════════════════════════════════════════
+   BOTTOM DOCK (phones & tablets)
+═══════════════════════════════════════════════ */
+const DOCK_ITEMS = [
+  { key: 'overview',         label: 'Overview',        icon: I.overview },
+  { key: 'members',          label: 'Members',         icon: I.members, badge: 'pending' },
+  { key: 'payments',         label: 'Payments',        icon: I.payments },
+  { key: 'pending-payments', label: 'Verify Payments', icon: I.verify, badge: 'pendingPayments' },
+  { key: 'announcements',    label: 'Announcements',   icon: I.announcements },
+  { key: 'family-tree',      label: 'Family Tree',     icon: I.tree },
+];
+
+function Dock({ page, stats, onNavigate }) {
+  const idx = Math.max(0, DOCK_ITEMS.findIndex(d => d.key === page));
+  return (
+    <div className="dk-wrap">
+      <nav className="dk" aria-label="Admin pages" style={{ '--i': idx, '--n': DOCK_ITEMS.length }}>
+        <div className="dk-cone" />
+        <div className="dk-grid" style={{ gridTemplateColumns: `repeat(${DOCK_ITEMS.length}, 1fr)` }}>
+          {DOCK_ITEMS.map(({ key, label, icon, badge }) => (
+            <button
+              key={key}
+              className={`dk-item ${page === key ? 'active' : ''}`}
+              onClick={() => onNavigate(key, key === 'members' ? { filter: 'pending' } : {})}
+              aria-label={label} title={label}
+              aria-current={page === key ? 'page' : undefined}
+            >
+              <span className="dk-ic">
+                {icon}
+                {badge && stats?.[badge] > 0 && <i className="dk-badge" />}
+              </span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+const dockCss = `
+.dk-wrap { display: none; }
+.ad.is-mobile .dk-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; display: flex; justify-content: center; padding: 0 12px calc(14px + env(safe-area-inset-bottom)); pointer-events: none; }
+.dk { position: relative; pointer-events: auto; width: min(520px, 100%); height: 70px; overflow: hidden; border-radius: 999px; border: 1px solid rgba(255,255,255,.16);
+  background: linear-gradient(180deg, rgba(34,34,38,.78), rgba(16,16,19,.78)); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.08) inset; }
+.dk-grid { position: relative; z-index: 2; height: 100%; display: grid; }
+.dk-item { padding: 0; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--dim); -webkit-tap-highlight-color: transparent; transition: color .5s ease; }
+.dk-item:hover { color: var(--hi); }
+.dk-item.active { color: var(--hi); }
+.dk-ic { position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid transparent; transition: border-color .6s ease, background .6s ease, box-shadow .6s ease; }
+.dk-ic svg { width: 20px; height: 20px; }
+.dk-item.active .dk-ic { border-color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); box-shadow: 0 0 24px rgba(var(--accent-rgb), .25); }
+.dk-item:focus-visible .dk-ic { border-color: var(--accent); }
+.dk-badge { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.dk-cone { position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; width: calc(100% / var(--n)); pointer-events: none; transform: translateX(calc(var(--i) * 100%)); transition: transform .9s cubic-bezier(.22,1,.36,1); }
+.dk-cone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(var(--accent-rgb), .5), rgba(var(--accent-rgb), .12) 55%, rgba(var(--accent-rgb), 0) 100%); clip-path: polygon(34% 0, 66% 0, 100% 100%, 0 100%); filter: blur(3px); }
+.dk-cone::after { content: ''; position: absolute; top: 0; left: 50%; width: 30%; height: 4px; margin-left: -15%; border-radius: 0 0 6px 6px; background: var(--accent); box-shadow: 0 0 20px var(--accent), 0 0 44px rgba(var(--accent-rgb), .6); }
+
+/* mobile: dock replaces the drawer */
+.ad.is-mobile .nv-w, .ad.is-mobile .scrim { display: none !important; }
+.ad.is-mobile .main { padding-bottom: 130px; }
+.ad.is-mobile .toast { bottom: 104px; }
+.ad.is-mobile .topbar-acts { display: flex; gap: 8px; }
+
+.ad[data-theme="light"] .dk { background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(245,242,236,.85)); border-color: rgba(0,0,0,.12); box-shadow: 0 20px 50px rgba(40,30,10,.18), 0 1px 0 #fff inset; }
+.ad[data-theme="light"] .dk-item.active .dk-ic { border-color: rgba(0,0,0,.55); background: rgba(0,0,0,.04); }
+@media (prefers-reduced-motion: reduce) { .dk-cone { transition-duration: .01s; } }
+`;
+
 /* ═══════════════════════════════════════════════
    TINY SHARED COMPONENTS
 ═══════════════════════════════════════════════ */
@@ -1711,20 +1781,24 @@ export default function AdminDashboard() {
   return (
     <div className={`ad${isMobile ? ' is-mobile' : ''}`} data-theme={theme}>
       <style>{css}</style>
+      <style>{dockCss}</style>
 
       {/* Mobile top bar */}
       <header className="topbar">
-        <div className="brand">
-          <img src="/mus.jpg" alt="MUS Welfare logo" />
-          <div>
-            <div className="sb-name">MUS Welfare</div>
-            <div className="sb-sub">Admin Panel</div>
-          </div>
-        </div>
-        <button onClick={() => setMobileOpen(true)} aria-label="Open menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
-        </button>
-      </header>
+  <div className="brand">
+    <img src="/mus.jpg" alt="MUS Welfare logo" />
+    <div>
+      <div className="sb-name">MUS Welfare</div>
+      <div className="sb-sub">Admin Panel</div>
+    </div>
+  </div>
+  <div className="topbar-acts">
+    <button onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))} aria-label="Toggle night mode">
+      {theme === 'dark' ? I.moon : I.sun}
+    </button>
+    <button onClick={logout} aria-label="Log out">{I.logout}</button>
+  </div>
+</header>
       <div className={`scrim ${mobileOpen ? 'show' : ''}`} onClick={() => setMobileOpen(false)} />
 
       <AdminSidebar
@@ -1745,6 +1819,7 @@ export default function AdminDashboard() {
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
+      {isMobile && <Dock page={page} stats={stats} onNavigate={navigate} />}
     </div>
   );
 }
