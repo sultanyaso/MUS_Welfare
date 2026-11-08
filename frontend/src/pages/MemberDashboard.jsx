@@ -10,8 +10,7 @@ const CUR_MONTH = new Date().getMonth() + 1;
 /* ══════════════════════════════════════════════════════
    THEME + GLOBAL STYLES
    Dark (default) = near-black, light-grey text, hairline borders,
-   lamp accent #ffd89b (255,216,155). "Night Mode" toggle switches to a light variant.
-   Swap --font / --display below to match your landing page fonts.
+   mint accent #39ffb0. "Night Mode" toggle switches to a light variant.
 ══════════════════════════════════════════════════════ */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap');
@@ -604,6 +603,73 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
     </>
   );
 }
+
+/* ══════════════════════════════════════════════════════
+   BOTTOM DOCK (phones & tablets)
+══════════════════════════════════════════════════════ */
+const DOCK_ITEMS = [
+  { key: 'overview',      label: 'Dashboard',     icon: 'dashboard' },
+  { key: 'members',       label: 'Members',       icon: 'users' },
+  { key: 'payments',      label: 'Payments',      icon: 'card', dot: 'pay' },
+  { key: 'announcements', label: 'Announcements', icon: 'bell', dot: 'ann' },
+  { key: 'family-tree',   label: 'Family Tree',   icon: 'tree' },
+];
+
+function Dock({ page, setPage, stats, annDot }) {
+  const idx = Math.max(0, DOCK_ITEMS.findIndex(d => d.key === page));
+  const showDot = d => (d === 'ann' ? annDot : d === 'pay' ? (stats?.myPending || 0) > 0 : false);
+  return (
+    <div className="dk-wrap">
+      <nav className="dk" aria-label="Pages" style={{ '--i': idx, '--n': DOCK_ITEMS.length }}>
+        <div className="dk-cone" />
+        <div className="dk-grid" style={{ gridTemplateColumns: `repeat(${DOCK_ITEMS.length}, 1fr)` }}>
+          {DOCK_ITEMS.map(({ key, label, icon, dot }) => (
+            <button
+              key={key}
+              className={`dk-item${page === key ? ' active' : ''}`}
+              onClick={() => setPage(key)}
+              aria-label={label} title={label}
+              aria-current={page === key ? 'page' : undefined}
+            >
+              <span className="dk-ic">
+                <I n={icon} size={20} />
+                {dot && showDot(dot) && <i className="dk-badge" />}
+              </span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+const dockCss = `
+.dk-wrap { display: none; }
+.md-root.is-mobile .dk-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; display: flex; justify-content: center; padding: 0 12px calc(14px + env(safe-area-inset-bottom)); pointer-events: none; }
+.dk { position: relative; pointer-events: auto; width: min(520px, 100%); height: 70px; overflow: hidden; border-radius: 999px; border: 1px solid rgba(255,255,255,.16);
+  background: linear-gradient(180deg, rgba(34,34,38,.78), rgba(16,16,19,.78)); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.08) inset; }
+.dk-grid { position: relative; z-index: 2; height: 100%; display: grid; }
+.dk-item { padding: 0; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--muted); -webkit-tap-highlight-color: transparent; transition: color .5s ease; }
+.dk-item:hover, .dk-item.active { color: var(--text); }
+.dk-ic { position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid transparent; transition: border-color .6s ease, background .6s ease, box-shadow .6s ease; }
+.dk-item.active .dk-ic { border-color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); box-shadow: 0 0 24px rgba(var(--accent-rgb), .25); }
+.dk-item:focus-visible .dk-ic { border-color: var(--accent); }
+.dk-badge { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.dk-cone { position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; width: calc(100% / var(--n)); pointer-events: none; transform: translateX(calc(var(--i) * 100%)); transition: transform .9s cubic-bezier(.22,1,.36,1); }
+.dk-cone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(var(--accent-rgb), .5), rgba(var(--accent-rgb), .12) 55%, rgba(var(--accent-rgb), 0) 100%); clip-path: polygon(34% 0, 66% 0, 100% 100%, 0 100%); filter: blur(3px); }
+.dk-cone::after { content: ''; position: absolute; top: 0; left: 50%; width: 30%; height: 4px; margin-left: -15%; border-radius: 0 0 6px 6px; background: var(--accent); box-shadow: 0 0 20px var(--accent), 0 0 44px rgba(var(--accent-rgb), .6); }
+
+/* mobile: dock replaces the drawer */
+.md-root.is-mobile .md-side-wrap, .md-root.is-mobile .md-overlay { display: none !important; }
+.md-root.is-mobile .md-main { padding-bottom: 120px; }
+.md-root.is-mobile .toast { bottom: calc(96px + env(safe-area-inset-bottom)); }
+.md-root.is-mobile .md-topbar .icon-btn { width: 36px; height: 36px; }
+
+.md-root[data-theme="light"] .dk { background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(245,242,236,.88)); border-color: rgba(0,0,0,.12); box-shadow: 0 20px 50px rgba(40,30,10,.18), 0 1px 0 #fff inset; }
+.md-root[data-theme="light"] .dk-item.active .dk-ic { border-color: rgba(0,0,0,.55); background: rgba(0,0,0,.04); }
+@media (prefers-reduced-motion: reduce) { .dk-cone { transition-duration: .01s; } }
+`;
 
 /* ══════════════════════════════════════════════════════
    PAY NOW MODAL — bottom sheet on phones, centered card elsewhere
@@ -1466,16 +1532,18 @@ export default function MemberDashboard() {
   return (
     <div className={`md-root${isMobile ? ' is-mobile' : ''}`} data-theme={theme}>
       <style>{CSS}</style>
+      <style>{dockCss}</style>
 
       {/* Mobile top bar */}
       <header className="md-topbar">
-        <button className="icon-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu"><I n="menu" size={18}/></button>
         <div className="brand-logo" style={{ width:32, height:32 }}>
           <svg width="16" height="16" viewBox="0 0 60 60"><path d="M10 42 Q7 25 22 14 Q30 8 40 13 L36 20 Q28 11 20 20 Q7 30 15 44Z" style={{ fill:'var(--text)' }}/><path d="M50 18 Q53 35 38 46 Q30 52 20 47 L24 40 Q32 49 40 40 Q53 30 45 16Z" style={{ fill:'var(--muted)' }}/><ellipse cx="30" cy="32" rx="9" ry="6" style={{ fill:'var(--accent)' }}/></svg>
         </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div className="brand-name">MUS Welfare</div>
         </div>
+        <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle night mode"><I n={theme === 'dark' ? 'moon' : 'sun'} size={16}/></button>
+        <button className="icon-btn" onClick={logout} aria-label="Log out"><I n="logout" size={16}/></button>
         <button className="btn btn-accent" style={{ height:36, padding:'0 14px', fontSize:'.78rem' }} onClick={openPayNow}>Pay Now</button>
       </header>
 
@@ -1504,6 +1572,7 @@ export default function MemberDashboard() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast}/>}
+      {isMobile && <Dock page={page} setPage={setPage} stats={stats} annDot={annDot}/>}
     </div>
   );
 }
