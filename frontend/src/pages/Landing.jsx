@@ -12,10 +12,21 @@ function OrgLogo({ size = 34 }) {
   );
 }
 
-/* ─── Navbar ─── */
-function Navbar({ activeSection }) {
+/* ─── Icons (thin outline) ─── */
+const Ic = ({ children }) => (
+  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+const ICONS = {
+  home:    <Ic><path d="M3 11l9-8 9 8" /><path d="M5 10v10h5v-6h4v6h5V10" /></Ic>,
+  about:   <Ic><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" /></Ic>,
+  how:     <Ic><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2" /></Ic>,
+  contact: <Ic><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></Ic>,
+  account: <Ic><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></Ic>,
+};
+
+/* ─── Top bar (brand + auth only) ─── */
+function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -23,20 +34,8 @@ function Navbar({ activeSection }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const navLinks = [
-    { label: 'Home', href: '#home' },
-    { label: 'About', href: '#about' },
-    { label: 'How It Works', href: '#how' },
-    { label: 'Contact', href: '#contact' },
-  ];
-
-  const scrollTo = (href) => {
-    setMenuOpen(false);
-    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
-    <nav className={`nav ${scrolled || menuOpen ? 'nav-solid' : ''}`}>
+    <nav className={`nav ${scrolled ? 'nav-solid' : ''}`}>
       <div className="nav-inner">
         <div className="brand">
           <OrgLogo size={34} />
@@ -45,45 +44,51 @@ function Navbar({ activeSection }) {
             <div className="brand-sub">Organization</div>
           </div>
         </div>
-
-        <div className="nav-links">
-          {navLinks.map(({ label, href }) => (
-            <button
-              key={label}
-              onClick={() => scrollTo(href)}
-              className={`nav-link ${activeSection === href.slice(1) ? 'active' : ''}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         <div className="nav-auth">
           <Link to="/login" className="btn-text">Log In</Link>
           <Link to="/signup" className="btn btn-sm">Join Now</Link>
         </div>
-
-        <button className="hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            {menuOpen
-              ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-              : <><line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="21" y2="16" /></>}
-          </svg>
-        </button>
       </div>
-
-      {menuOpen && (
-        <div className="mobile-menu">
-          {navLinks.map(({ label, href }) => (
-            <button key={label} onClick={() => scrollTo(href)} className="mobile-link">{label}</button>
-          ))}
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-            <Link to="/login" onClick={() => setMenuOpen(false)} className="btn btn-ghost" style={{ flex: 1 }}>Log In</Link>
-            <Link to="/signup" onClick={() => setMenuOpen(false)} className="btn" style={{ flex: 1 }}>Join Now</Link>
-          </div>
-        </div>
-      )}
     </nav>
+  );
+}
+
+/* ─── Floating dock with sliding light cone ─── */
+const DOCK = [
+  { id: 'home',    label: 'Home',         icon: ICONS.home },
+  { id: 'about',   label: 'About',        icon: ICONS.about },
+  { id: 'how',     label: 'How It Works', icon: ICONS.how },
+  { id: 'contact', label: 'Contact',      icon: ICONS.contact },
+];
+
+function Dock({ activeSection }) {
+  const idx = Math.max(0, DOCK.findIndex(d => d.id === activeSection));
+
+  const go = id => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+
+  return (
+    <div className="dock-wrap">
+      <nav className="dock" aria-label="Sections" style={{ '--i': idx }}>
+        <div className="dock-cone" />
+        <div className="dock-grid">
+          {DOCK.map(({ id, label, icon }) => (
+            <button
+              key={id}
+              className={`dock-item ${activeSection === id ? 'active' : ''}`}
+              onClick={() => go(id)}
+              aria-label={label}
+              title={label}
+              aria-current={activeSection === id ? 'true' : undefined}
+            >
+              <span className="dock-ic">{icon}</span>
+            </button>
+          ))}
+          <Link to="/login" className="dock-item" aria-label="Log in" title="Log in">
+            <span className="dock-ic">{ICONS.account}</span>
+          </Link>
+        </div>
+      </nav>
+    </div>
   );
 }
 
@@ -399,7 +404,7 @@ export default function Landing() {
       <style>{`
         .mus {
           --bg: #08080a; --bg2: #0d0d10; --line: rgba(255,255,255,0.08);
-          --text: #c4c5cb; --dim: #7b7c85; --hi: #f3f3f5; --accent: #39ffb0;
+          --text: #c4c5cb; --dim: #7b7c85; --hi: #f3f3f5; --accent: #39ffb0; --accent-rgb: 57, 255, 176;
           font-family: Sora, sans-serif; background: var(--bg); color: var(--text);
           -webkit-font-smoothing: antialiased; overflow-x: hidden;
         }
@@ -433,21 +438,36 @@ export default function Landing() {
         .btn-text { color: var(--text); text-decoration: none; font-size: .85rem; padding: 8px 16px; transition: color .4s; }
         .btn-text:hover { color: var(--hi); }
 
-        /* nav */
-        .nav { position: fixed; inset: 0 0 auto 0; z-index: 1000; padding: 0 6vw; transition: background .8s ease, border-color .8s ease; border-bottom: 1px solid transparent; }
-        .nav-solid { background: rgba(8,8,10,.88); backdrop-filter: blur(18px); border-bottom-color: var(--line); }
-        .nav-inner { max-width: 1200px; margin: 0 auto; height: 80px; display: flex; align-items: center; justify-content: space-between; }
+        /* top bar */
+        .nav { position: fixed; inset: 0 0 auto 0; z-index: 900; padding: 0 6vw; transition: background .8s ease, border-color .8s ease; border-bottom: 1px solid transparent; }
+        .nav-solid { background: rgba(8,8,10,.8); backdrop-filter: blur(18px); border-bottom-color: var(--line); }
+        .nav-inner { max-width: 1200px; margin: 0 auto; height: 76px; display: flex; align-items: center; justify-content: space-between; }
         .brand { display: flex; align-items: center; gap: 12px; }
         .brand-name { font-weight: 400; font-size: .95rem; color: var(--hi); line-height: 1.1; }
         .brand-sub { font-size: .55rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim); margin-top: 3px; }
-        .nav-links { display: flex; gap: 8px; }
-        .nav-link { background: none; border: none; cursor: pointer; padding: 8px 16px; color: var(--dim); font-size: .82rem; transition: color .5s; position: relative; }
-        .nav-link:hover, .nav-link.active { color: var(--hi); }
-        .nav-link.active::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 0; height: 1px; background: var(--accent); }
         .nav-auth { display: flex; align-items: center; gap: 8px; }
-        .hamburger { display: none; background: none; border: none; color: var(--hi); cursor: pointer; padding: 6px; }
-        .mobile-menu { padding: 8px 0 32px; border-top: 1px solid var(--line); }
-        .mobile-link { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 16px 0; color: var(--text); font-size: 1rem; font-weight: 300; border-bottom: 1px solid var(--line); }
+
+        /* ───── floating dock ───── */
+        .dock-wrap { position: fixed; left: 0; right: 0; bottom: 22px; z-index: 1000; display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
+        .dock {
+          position: relative; pointer-events: auto; width: min(520px, 100%); height: 74px; overflow: hidden;
+          border-radius: 999px; border: 1px solid rgba(255,255,255,.16);
+          background: linear-gradient(180deg, rgba(34,34,38,.72), rgba(16,16,19,.72));
+          backdrop-filter: blur(22px) saturate(1.2); -webkit-backdrop-filter: blur(22px) saturate(1.2);
+          box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.08) inset;
+        }
+        .dock-grid { position: relative; z-index: 2; height: 100%; display: grid; grid-template-columns: repeat(5, 1fr); }
+        .dock-item { display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--dim); text-decoration: none; -webkit-tap-highlight-color: transparent; transition: color .5s ease; }
+        .dock-item:hover { color: var(--hi); }
+        .dock-ic { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid transparent; transition: border-color .6s ease, background .6s ease, box-shadow .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+        .dock-item:hover .dock-ic { transform: translateY(-2px); }
+        .dock-item.active { color: var(--hi); }
+        .dock-item.active .dock-ic { border-color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); box-shadow: 0 0 24px rgba(var(--accent-rgb), .25); }
+        .dock-item:focus-visible .dock-ic { border-color: var(--accent); }
+
+        .dock-cone { position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; width: 20%; pointer-events: none; transform: translateX(calc(var(--i) * 100%)); transition: transform .9s cubic-bezier(.22,1,.36,1); }
+        .dock-cone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(var(--accent-rgb), .5), rgba(var(--accent-rgb), .12) 55%, rgba(var(--accent-rgb), 0) 100%); clip-path: polygon(36% 0, 64% 0, 100% 100%, 0 100%); filter: blur(3px); }
+        .dock-cone::after { content: ''; position: absolute; top: 0; left: 50%; width: 28%; height: 4px; margin-left: -14%; border-radius: 0 0 6px 6px; background: var(--accent); box-shadow: 0 0 20px var(--accent), 0 0 44px rgba(var(--accent-rgb), .6); }
 
         /* sections */
         .section { padding: 180px 6vw; background: var(--bg); }
@@ -455,7 +475,7 @@ export default function Landing() {
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 120px; }
 
         /* hero */
-        .hero { min-height: 100vh; position: relative; display: flex; align-items: center; padding: 140px 6vw 100px; overflow: hidden; background: var(--bg); }
+        .hero { min-height: 100vh; position: relative; display: flex; align-items: center; padding: 140px 6vw 140px; overflow: hidden; background: var(--bg); }
         .hero-glow { position: absolute; width: 900px; height: 900px; top: -200px; right: -150px; pointer-events: none; background: radial-gradient(circle at 30% 40%, rgba(255,255,255,.07), transparent 60%); }
         .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 80px; align-items: center; position: relative; z-index: 1; }
         .hero-title { font-size: clamp(2.8rem, 5.6vw, 5.2rem); font-weight: 200; line-height: 1.05; letter-spacing: -0.03em; color: var(--hi); margin: 0 0 40px; }
@@ -499,8 +519,8 @@ export default function Landing() {
         .field:focus { border-bottom-color: var(--accent); }
         .field::placeholder { color: #4d4e55; }
 
-        /* footer */
-        .footer { background: var(--bg); border-top: 1px solid var(--line); padding: 96px 6vw 40px; }
+        /* footer (extra bottom room so the dock never covers it) */
+        .footer { background: var(--bg); border-top: 1px solid var(--line); padding: 96px 6vw 140px; }
         .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 64px; margin-bottom: 80px; }
         .footer-head { font-size: .62rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--dim); margin-bottom: 20px; }
         .footer-text { color: var(--dim); font-size: .85rem; line-height: 1.9; font-weight: 300; margin: 0; }
@@ -510,8 +530,6 @@ export default function Landing() {
 
         /* responsive */
         @media (max-width: 960px) {
-          .nav-links, .nav-auth { display: none; }
-          .hamburger { display: block; }
           .section { padding: 112px 6vw; }
           .grid2, .hero-grid, .footer-grid { grid-template-columns: 1fr; gap: 72px; }
           .steps { grid-template-columns: 1fr 1fr; gap: 56px 32px; }
@@ -522,17 +540,22 @@ export default function Landing() {
           .steps { grid-template-columns: 1fr; }
           .stats { flex-direction: column; gap: 28px; }
           .stat + .stat { padding-left: 0; border-left: none; }
+          .nav-auth .btn-text { display: none; }
+          .dock { height: 68px; }
+          .dock-wrap { bottom: 16px; }
         }
         @media (prefers-reduced-motion: reduce) {
           .rise, .reveal, .dot { animation: none; transition: none; opacity: 1; transform: none; }
+          .dock-cone, .dock-ic { transition-duration: .01s; }
         }
       `}</style>
-      <Navbar activeSection={activeSection} />
+      <Navbar />
       <Hero />
       <About />
       <HowItWorks />
       <Contact />
       <Footer />
+      <Dock activeSection={activeSection} />
     </div>
   );
 }
