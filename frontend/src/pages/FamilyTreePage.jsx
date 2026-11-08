@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { familyAPI } from '../api';
 
 /* ─── build children map ─── */
@@ -16,11 +16,14 @@ function buildTree(members) {
   return { roots, map };
 }
 
-/* ─── measure subtree width ─── */
+/* ─── layout ─── */
 const NODE_W = 130;
 const NODE_H = 64;
 const GAP_X  = 20;
 const GAP_Y  = 90;
+const MIN_K  = 0.15;
+const MAX_K  = 2.5;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 function subtreeWidth(node) {
   if (!node.children.length) return NODE_W;
@@ -28,7 +31,6 @@ function subtreeWidth(node) {
   return Math.max(NODE_W, childrenW);
 }
 
-/* ─── layout: assign x,y to every node ─── */
 function layoutTree(nodes) {
   const positions = {};
   function place(node, x, y) {
@@ -52,7 +54,6 @@ function layoutTree(nodes) {
   return positions;
 }
 
-/* ─── collect all edges ─── */
 function collectEdges(nodes, positions) {
   const edges = [];
   function walk(node) {
@@ -64,7 +65,7 @@ function collectEdges(nodes, positions) {
       const cx = c.x + NODE_W / 2;
       const cy = c.y;
       const my = (py + cy) / 2;
-      edges.push({ key:`${node._id}-${child._id}`, d:`M${px},${py} C${px},${my} ${cx},${my} ${cx},${cy}` });
+      edges.push({ key: `${node._id}-${child._id}`, from: node._id, to: child._id, d: `M${px},${py} C${px},${my} ${cx},${my} ${cx},${cy}` });
       walk(child);
     });
   }
@@ -72,7 +73,6 @@ function collectEdges(nodes, positions) {
   return edges;
 }
 
-/* ─── SVG canvas bounds ─── */
 function canvasBounds(positions) {
   if (!Object.keys(positions).length) return { w: 800, h: 400 };
   const xs = Object.values(positions).map(p => p.x);
@@ -83,31 +83,184 @@ function canvasBounds(positions) {
   };
 }
 
+/* ─── styles ─── */
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;600&display=swap');
+
+.ft {
+  --c-panel: var(--panel, #0e0e11); --c-panel2: var(--panel2, #131317);
+  --c-line: var(--line, rgba(255,255,255,.08)); --c-line2: var(--line2, rgba(255,255,255,.14));
+  --c-text: var(--text, #c4c5cb); --c-dim: var(--dim, #7b7c85); --c-hi: var(--hi, #f3f3f5);
+  --c-acc: var(--accent, #39ffb0); --c-acc-rgb: var(--accent-rgb, 57, 255, 176);
+  --c-ok: var(--ok, #8fe0b0); --c-danger: var(--danger, #ff7a7a);
+  /* member colours */
+  --c-male: var(--c-acc); --c-female: #ff8fb8; --c-dead: #ffd89b;
+  font-family: Sora, sans-serif; color: var(--c-text); -webkit-font-smoothing: antialiased;
+}
+.ad[data-theme="light"] .ft { --c-female: #d6336c; --c-dead: #b9770e; }
+.ft * { box-sizing: border-box; }
+.ft button { font-family: inherit; }
+@keyframes ftRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ftModal { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes ftSheet { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+.ft-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; animation: ftRise .9s cubic-bezier(.22,1,.36,1) both; }
+.ft-h1 { font-size: clamp(1.6rem, 2.6vw, 2.2rem); font-weight: 200; letter-spacing: -0.02em; line-height: 1.15; color: var(--c-hi); margin: 0 0 8px; }
+.ft-lead { font-size: .82rem; color: var(--c-dim); font-weight: 300; margin: 0; }
+.ft-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ft-search { position: relative; }
+.ft-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--c-dim); pointer-events: none; }
+
+.ft-inp { width: 100%; padding: 12px 14px; background: rgba(127,127,127,.06); border: 1px solid var(--c-line2); border-radius: 10px; color: var(--c-hi); font-family: inherit; font-size: .88rem; font-weight: 300; outline: none; transition: border-color .5s, box-shadow .5s; }
+.ft-inp:focus { border-color: var(--c-acc); box-shadow: 0 0 0 3px rgba(var(--c-acc-rgb), .08); }
+.ft-inp::placeholder { color: var(--c-dim); opacity: .6; }
+.ft-inp.pill { width: 230px; padding: 9px 14px 9px 38px; border-radius: 99px; }
+.ft select.ft-inp option { background: var(--c-panel2); color: var(--c-hi); }
+
+.ft-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; background: var(--c-acc); color: #04110b; border: 1px solid var(--c-acc); border-radius: 99px; font-size: .78rem; font-weight: 600; letter-spacing: .3px; cursor: pointer; white-space: nowrap; transition: box-shadow .6s ease, transform .6s ease, background .4s, opacity .4s; }
+.ft-btn:hover:not(:disabled) { box-shadow: 0 0 36px rgba(var(--c-acc-rgb), .4); transform: translateY(-1px); }
+.ft-btn:disabled { opacity: .55; cursor: wait; }
+.ft-btn.ghost { background: transparent; color: var(--c-hi); border-color: var(--c-line2); font-weight: 400; }
+.ft-btn.ghost:hover:not(:disabled) { background: rgba(127,127,127,.1); box-shadow: none; }
+.ft-btn.danger { background: transparent; color: var(--c-danger); border-color: rgba(255,122,122,.5); font-weight: 400; }
+.ft-btn.danger:hover:not(:disabled) { background: rgba(255,122,122,.08); box-shadow: 0 0 28px rgba(255,122,122,.12); }
+.ft-btn.solid-danger { background: var(--c-danger); border-color: var(--c-danger); color: #1a0505; }
+.ft-btn.block { width: 100%; }
+
+/* search mode toggle */
+.ft-seg { display: inline-flex; padding: 3px; border: 1px solid var(--c-line2); border-radius: 99px; background: rgba(127,127,127,.06); }
+.ft-seg button { padding: 7px 16px; border: none; border-radius: 99px; background: transparent; color: var(--c-dim); font-size: .72rem; letter-spacing: .5px; cursor: pointer; transition: background .4s, color .4s; }
+.ft-seg button:hover { color: var(--c-hi); }
+.ft-seg button.on { background: var(--c-acc); color: #04110b; font-weight: 600; }
+
+/* legend */
+.ft-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; font-size: .68rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-dim); }
+.ft-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.ft-legend i { width: 12px; height: 12px; border-radius: 4px; border: 1.5px solid; }
+.ft-legend .m { border-color: var(--c-male);   background: color-mix(in srgb, var(--c-male) 22%, transparent); }
+.ft-legend .f { border-color: var(--c-female); background: color-mix(in srgb, var(--c-female) 22%, transparent); }
+.ft-legend .d { border-color: var(--c-dead);   background: color-mix(in srgb, var(--c-dead) 22%, transparent); border-style: dashed; }
+.ft-legend .hit { color: var(--c-hi); letter-spacing: 1px; }
+.ft-legend .hit b { color: var(--c-acc); font-weight: 600; }
+
+/* pusht chips */
+.ft-lineage { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; animation: ftRise .6s cubic-bezier(.22,1,.36,1) both; }
+.ft-lchain { display: inline-flex; align-items: center; gap: 8px; }
+.ft-lchain em { font-style: normal; color: var(--c-dim); }
+.ft-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 14px; border: 1px solid var(--c-line2); border-radius: 12px; background: var(--c-panel2); color: var(--c-hi); font-size: .82rem; font-weight: 300; cursor: pointer; transition: border-color .4s, box-shadow .5s; }
+.ft-chip small { font-size: .56rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-dim); }
+.ft-chip:hover { border-color: rgba(var(--c-acc-rgb), .6); box-shadow: 0 0 22px rgba(var(--c-acc-rgb), .12); }
+.ft-chip.first { border-color: rgba(var(--c-acc-rgb), .6); }
+.ft-chip.first small { color: var(--c-acc); }
+
+/* stage */
+.ft-stage { position: relative; height: calc(100dvh - 330px); min-height: 440px; animation: ftRise 1s cubic-bezier(.22,1,.36,1) .1s both; }
+.ft-canvas { position: absolute; inset: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--c-line); background: var(--c-panel); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  background-image: radial-gradient(rgba(127,127,127,.16) 1px, transparent 1px); background-size: 26px 26px; }
+.ft-canvas.grabbing { cursor: grabbing; }
+.ft-canvas svg { display: block; width: 100%; height: 100%; }
+.ft-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--c-dim); font-size: .88rem; font-weight: 300; text-align: center; padding: 20px; }
+.ft-center .big { font-size: 2.6rem; filter: grayscale(1) brightness(1.3); opacity: .85; }
+.ft-center strong { color: var(--c-hi); font-weight: 400; }
+
+.ft-edge { fill: none; stroke: rgba(var(--c-acc-rgb), .32); stroke-width: 1.6; stroke-dasharray: 5 4; transition: opacity .4s; }
+.ft-edge.lit { stroke: var(--c-acc); stroke-opacity: 1; stroke-width: 3; stroke-dasharray: none; filter: drop-shadow(0 0 6px rgba(var(--c-acc-rgb), .7)); }
+.ft-edge.dim { opacity: .15; }
+.ft-node { cursor: pointer; transition: opacity .4s; }
+.ft-node.dim { opacity: .22; }
+.ft-node .card { fill: color-mix(in srgb, var(--c-male) 8%, var(--c-panel2)); stroke: var(--c-male); stroke-opacity: .75; stroke-width: 1.3; transition: stroke-opacity .4s; }
+.ft-node:hover .card { stroke-opacity: 1; }
+.ft-node.f .card { fill: color-mix(in srgb, var(--c-female) 8%, var(--c-panel2)); stroke: var(--c-female); }
+.ft-node.d .card { fill: color-mix(in srgb, var(--c-dead) 8%, var(--c-panel2)); stroke: var(--c-dead); stroke-opacity: .85; stroke-dasharray: 4 3; }
+.ft-node .ring { fill: none; stroke: var(--c-hi); stroke-width: 2; opacity: 0; filter: drop-shadow(0 0 8px rgba(255,255,255,.45)); transition: opacity .4s; }
+.ft-node.sel .ring, .ft-node.match .ring { opacity: 1; }
+.ft-node.focus .ring { animation: ftPulse 1.6s ease-in-out infinite; }
+@keyframes ftPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.ft-node text { font-family: Sora, sans-serif; pointer-events: none; }
+.ft-node .nm { fill: var(--c-hi); font-size: 12px; font-weight: 400; }
+.ft-node .sub { fill: var(--c-dim); font-size: 9px; }
+.ft-node .gi { fill: var(--c-male); font-size: 11px; }
+.ft-node.f .gi { fill: var(--c-female); }
+.ft-node.d .gi { fill: var(--c-dead); }
+.ft-node .cnt-bg { fill: rgba(var(--c-acc-rgb), .14); stroke: rgba(var(--c-acc-rgb), .5); stroke-width: 1; }
+.ft-node .cnt { fill: var(--c-acc); font-size: 9px; font-weight: 600; }
+
+.ft-zoom { position: absolute; left: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; align-items: center; z-index: 5; }
+.ft-zoom button { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--c-panel2); border: 1px solid var(--c-line2); border-radius: 10px; color: var(--c-hi); font-size: 1.1rem; cursor: pointer; transition: border-color .4s, color .4s, box-shadow .5s; }
+.ft-zoom button:hover { color: var(--c-acc); border-color: rgba(var(--c-acc-rgb), .5); box-shadow: 0 0 22px rgba(var(--c-acc-rgb), .12); }
+.ft-zoom small { font-size: .62rem; letter-spacing: 1px; color: var(--c-dim); }
+
+/* detail panel */
+.ft-panel { position: absolute; top: 14px; right: 14px; z-index: 6; width: 264px; max-height: calc(100% - 28px); overflow-y: auto; padding: 22px; border: 1px solid var(--c-line2); border-radius: 16px; background: var(--c-panel2); box-shadow: 0 24px 60px rgba(0,0,0,.45), 0 0 50px rgba(var(--c-acc-rgb), .05); animation: ftRise .5s cubic-bezier(.22,1,.36,1) both; }
+.ft-x { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--c-line2); border-radius: 50%; color: var(--c-dim); font-size: 1rem; cursor: pointer; transition: color .4s, border-color .4s; }
+.ft-x:hover { color: var(--c-acc); border-color: rgba(var(--c-acc-rgb), .5); }
+.ft-av { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.2rem; margin-bottom: 14px; color: var(--c-male); border: 1px solid color-mix(in srgb, var(--c-male) 55%, transparent); background: color-mix(in srgb, var(--c-male) 10%, transparent); }
+.ft-av.f { color: var(--c-female); border-color: color-mix(in srgb, var(--c-female) 55%, transparent); background: color-mix(in srgb, var(--c-female) 10%, transparent); }
+.ft-av.d { color: var(--c-dead); border-color: color-mix(in srgb, var(--c-dead) 55%, transparent); background: color-mix(in srgb, var(--c-dead) 10%, transparent); border-style: dashed; }
+.ft-pname { font-size: 1.05rem; font-weight: 300; color: var(--c-hi); margin-bottom: 8px; padding-right: 30px; }
+.ft-pline { font-size: .78rem; font-weight: 300; color: var(--c-dim); margin-bottom: 4px; }
+.ft-pnote { font-size: .78rem; font-weight: 300; font-style: italic; color: var(--c-text); margin: 8px 0; }
+.ft-pkids { font-size: .66rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-acc); margin-top: 10px; }
+.ft-pacts { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--c-line); }
+
+/* modal */
+.ft-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.72); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ft-modal { width: 100%; max-height: 92dvh; overflow-y: auto; background: var(--c-panel); border: 1px solid var(--c-line2); border-radius: 18px; box-shadow: 0 40px 100px rgba(0,0,0,.7), 0 0 80px rgba(var(--c-acc-rgb), .06); animation: ftModal .5s cubic-bezier(.22,1,.36,1) both; color: var(--c-text); font-family: Sora, sans-serif; }
+.ft-mh { display: flex; align-items: center; justify-content: space-between; padding: 20px 26px; border-bottom: 1px solid var(--c-line); }
+.ft-mh h3 { margin: 0; font-size: 1.05rem; font-weight: 300; color: var(--c-hi); }
+.ft-mb { padding: 26px; }
+.ft-ff { margin-bottom: 18px; }
+.ft-fl { display: block; font-size: .6rem; letter-spacing: 2.5px; text-transform: uppercase; color: var(--c-dim); margin-bottom: 10px; }
+.ft-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ft-check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: .85rem; font-weight: 300; color: var(--c-text); }
+.ft-check input { width: 16px; height: 16px; accent-color: var(--c-acc); cursor: pointer; }
+.ft-err { padding: 12px 14px; margin-bottom: 16px; border-left: 2px solid var(--c-danger); font-size: .82rem; color: var(--c-danger); }
+.ft-row { display: flex; gap: 10px; }
+.ft-row .f1 { flex: 1; } .ft-row .f2 { flex: 2; }
+.ft-mtext { font-size: .88rem; line-height: 1.8; font-weight: 300; margin: 0 0 22px; color: var(--c-text); }
+
+/* small screens */
+@media (max-width: 760px) {
+  .ft-stage { height: calc(100dvh - 300px); min-height: 420px; }
+  .ft-inp.pill { width: 100%; }
+  .ft-search { flex: 1 1 100%; }
+  .ft-zoom { left: auto; right: 12px; top: 12px; bottom: auto; flex-direction: row; }
+  .ft-panel { top: auto; right: 10px; left: 10px; bottom: 10px; width: auto; max-height: 62%; animation-name: ftSheet; }
+  .ft-two { grid-template-columns: 1fr; }
+  .ft-mb { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ft *, .ft-modal { animation-duration: .01s !important; transition-duration: .01s !important; }
+}
+`;
+
 /* ══════════════════════════════════════════════════════
    FAMILY TREE PAGE
 ══════════════════════════════════════════════════════ */
 export default function FamilyTreePage({ isAdmin = false, showToast }) {
   const [members,    setMembers]    = useState([]);
   const [loading,    setLoading]    = useState(true);
-  const [selected,   setSelected]   = useState(null);   // clicked node
+  const [selected,   setSelected]   = useState(null);
   const [showForm,   setShowForm]   = useState(false);
   const [editNode,   setEditNode]   = useState(null);
   const [delConfirm, setDelConfirm] = useState(null);
   const [search,     setSearch]     = useState('');
+  const [matchIdx,   setMatchIdx]   = useState(0);
+  const [mode,       setMode]       = useState('member');   // 'member' | 'lineage'
 
-  // pan/zoom
-  const svgRef    = useRef(null);
+  // pan / zoom
   const canvasRef = useRef(null);
-  const [pan,   setPan]   = useState({ x: 40, y: 40 });
-  const [zoom,  setZoom]  = useState(1);
-  const dragging = useRef(false);
-  const lastPt   = useRef({ x: 0, y: 0 });
+  const [view, setView] = useState({ x: 40, y: 40, k: 1 });
+  const [smooth, setSmooth] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const pts = useRef(new Map());
+  const gesture = useRef({ moved: false, sx: 0, sy: 0, pinch: 0 });
 
-  // form state
-  const emptyForm = { name:'', parentId:'', gender:'male', birthYear:'', note:'', isAlive:true };
-  const [form,    setForm]    = useState(emptyForm);
-  const [saving,  setSaving]  = useState(false);
-  const [fErr,    setFErr]    = useState('');
+  // form
+  const emptyForm = { name: '', parentId: '', gender: 'male', birthYear: '', note: '', isAlive: true };
+  const [form,   setForm]   = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [fErr,   setFErr]   = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,53 +273,192 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // build tree
-  const { roots, map } = buildTree(members);
-  const positions       = layoutTree(roots);
-  const edges           = collectEdges(roots, positions);
-  const { w, h }        = canvasBounds(positions);
+  const { map, positions, edges, w, h } = useMemo(() => {
+    const t = buildTree(members);
+    const pos = layoutTree(t.roots);
+    const b = canvasBounds(pos);
+    return { map: t.map, positions: pos, edges: collectEdges(t.roots, pos), w: b.w, h: b.h };
+  }, [members]);
 
-  // search highlight
-  const searchIds = search.trim()
-    ? new Set(members.filter(m => m.name.toLowerCase().includes(search.toLowerCase())).map(m => m._id))
-    : new Set();
+  const matches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? members.filter(m => m.name.toLowerCase().includes(q)).map(m => m._id) : [];
+  }, [members, search]);
+  const searchIds = useMemo(() => new Set(matches), [matches]);
+  const matchKey = matches.join(',');
+  const focusId = matches.length ? matches[Math.min(matchIdx, matches.length - 1)] : null;
 
-  // pan handlers
-  const startDrag = e => {
-    dragging.current = true;
-    lastPt.current = { x: e.clientX, y: e.clientY };
-    e.currentTarget?.setPointerCapture?.(e.pointerId);
-    e.preventDefault();
-  };
-  const onPointerMove = e => {
-    if (!dragging.current) return;
-    const dx = e.clientX - lastPt.current.x;
-    const dy = e.clientY - lastPt.current.y;
-    setPan(p => ({ x: p.x - dx, y: p.y - dy }));
-    lastPt.current = { x: e.clientX, y: e.clientY };
-  };
-  const onPointerUp = e => {
-    dragging.current = false;
-    e.currentTarget?.releasePointerCapture?.(e.pointerId);
-  };
-  const onWheel = e => { e.preventDefault(); setZoom(z => Math.min(2, Math.max(0.3, z - e.deltaY * 0.001))); };
+  /* ── pusht: selected member se upar root tak ── */
+  const chain = useMemo(() => {
+    if (mode !== 'lineage' || !focusId) return [];
+    const out = [];
+    const seen = new Set();
+    let cur = map[focusId];
+    while (cur && !seen.has(cur._id)) {
+      seen.add(cur._id);
+      out.push(cur);                                   // pehle member, phir abu, phir dada...
+      cur = cur.parentId ? map[cur.parentId] : null;
+    }
+    return out;
+  }, [mode, focusId, map]);
+  const chainIds = useMemo(() => new Set(chain.map(c => c._id)), [chain]);
 
+  const relLabel = (i, gender) => {
+    const f = gender === 'female';
+    if (i === 0) return 'Selected';
+    if (i === 1) return f ? 'Mother' : 'Father';
+    if (i === 2) return f ? 'Grandmother' : 'Grandfather';
+    if (i === 3) return f ? 'Great-grandmother' : 'Great-grandfather';
+    return `${i}th ancestor`;
+  };
+
+  /* ── fit whole tree into the visible canvas ── */
+  const fit = useCallback(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const pad = 24;
+    const k = clamp(Math.min(1, (r.width - pad * 2) / w, (r.height - pad * 2) / h), MIN_K, 1);
+    setSmooth(true);
+    setView({ k, x: (r.width - w * k) / 2, y: Math.max(pad, (r.height - h * k) / 2) });
+  }, [w, h]);
+
+  useEffect(() => { if (!loading) { setSmooth(false); fit(); } }, [loading, fit, members.length]);
+
+  /* ── fly to a member ── */
+  const goTo = useCallback((id) => {
+    const el = canvasRef.current;
+    const pos = positions[id];
+    if (!el || !pos) return;
+    const r = el.getBoundingClientRect();
+    const k = clamp(Math.max(view.k, 1), MIN_K, MAX_K);
+    setSmooth(true);
+    setView({
+      k,
+      x: r.width / 2 - (pos.x + NODE_W / 2) * k,
+      y: r.height / 2 - (pos.y + NODE_H / 2) * k,
+    });
+  }, [positions, view.k]);
+
+  /* ── kai members ko ek saath screen mein fit karo ── */
+  const fitIds = useCallback((ids) => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const ps = ids.map(id => positions[id]).filter(Boolean);
+    if (!ps.length) return;
+    const r = el.getBoundingClientRect();
+    const minX = Math.min(...ps.map(p => p.x));
+    const maxX = Math.max(...ps.map(p => p.x)) + NODE_W;
+    const minY = Math.min(...ps.map(p => p.y));
+    const maxY = Math.max(...ps.map(p => p.y)) + NODE_H;
+    const bw = maxX - minX, bh = maxY - minY, pad = 60;
+    const k = clamp(Math.min(1.1, (r.width - pad * 2) / bw, (r.height - pad * 2) / bh), MIN_K, MAX_K);
+    setSmooth(true);
+    setView({ k, x: r.width / 2 - (minX + bw / 2) * k, y: r.height / 2 - (minY + bh / 2) * k });
+  }, [positions]);
+
+  // new search → start from the first match
+  useEffect(() => { setMatchIdx(0); }, [search]);
+
+  // go to the current match (debounced while typing)
   useEffect(() => {
-    const el = svgRef.current;
-    if (el) el.addEventListener('wheel', onWheel, { passive: false });
-    return () => { if (el) el.removeEventListener('wheel', onWheel); };
+    if (!focusId) return;
+    const t = setTimeout(() => {
+      if (mode === 'lineage') { fitIds(chain.map(c => c._id)); return; }
+      goTo(focusId);
+      if (matches.length === 1) {
+        const m = members.find(x => x._id === focusId);
+        if (m) setSelected(m);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, matchKey, mode]);
+
+  const onSearchKey = e => {
+    if (e.key === 'Enter' && matches.length > 1) {
+      e.preventDefault();
+      setMatchIdx(i => (i + 1) % matches.length);
+    }
+    if (e.key === 'Escape') setSearch('');
+  };
+
+  /* ── zoom around a point ── */
+  const zoomAt = useCallback((cx, cy, factor) => {
+    setSmooth(false);
+    setView(v => {
+      const k = clamp(v.k * factor, MIN_K, MAX_K);
+      const f = k / v.k;
+      return { k, x: cx - (cx - v.x) * f, y: cy - (cy - v.y) * f };
+    });
   }, []);
 
   useEffect(() => {
     const el = canvasRef.current;
-    if (!el || w === 0 || h === 0) return;
-    const rect = el.getBoundingClientRect();
-    setPan({
-      x: rect.width > w ? (rect.width - w) / 2 : 40,
-      y: rect.height > h ? (rect.height - h) / 2 : 40,
-    });
-  }, [w, h, members.length]);
+    if (!el) return;
+    const onWheel = e => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [zoomAt]);
 
+  const zoomCentre = factor => {
+    const r = canvasRef.current?.getBoundingClientRect();
+    if (r) zoomAt(r.width / 2, r.height / 2, factor);
+  };
+
+  /* ── pointer gestures: drag to pan, two fingers to pinch ── */
+  const onPointerDown = e => {
+    setSmooth(false);
+    pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gesture.current;
+    g.moved = false; g.sx = e.clientX; g.sy = e.clientY;
+    if (pts.current.size === 2) {
+      const [a, b] = [...pts.current.values()];
+      g.pinch = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  };
+
+  const onPointerMove = e => {
+    const prev = pts.current.get(e.pointerId);
+    if (!prev) return;
+    const g = gesture.current;
+    const cur = { x: e.clientX, y: e.clientY };
+    pts.current.set(e.pointerId, cur);
+
+    if (pts.current.size === 2) {
+      const [a, b] = [...pts.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (g.pinch > 0 && dist > 0) {
+        const r = canvasRef.current.getBoundingClientRect();
+        zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, dist / g.pinch);
+      }
+      g.pinch = dist;
+      g.moved = true;
+      return;
+    }
+
+    if (!g.moved) {
+      if (Math.hypot(cur.x - g.sx, cur.y - g.sy) < 5) return;   // still a tap
+      g.moved = true;
+      setDragging(true);
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+    setView(v => ({ ...v, x: v.x + (cur.x - prev.x), y: v.y + (cur.y - prev.y) }));
+  };
+
+  const onPointerUp = e => {
+    pts.current.delete(e.pointerId);
+    if (pts.current.size < 2) gesture.current.pinch = 0;
+    if (pts.current.size === 0) setDragging(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
+  /* ── form helpers ── */
   const openAdd = (parentId = '') => {
     setEditNode(null);
     setForm({ ...emptyForm, parentId });
@@ -187,6 +479,13 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
     setFErr('');
     setShowForm(true);
   };
+
+  const blockedParents = (() => {
+    if (!editNode || !map[editNode._id]) return new Set();
+    const out = new Set([editNode._id]);
+    (function walk(n) { n.children.forEach(c => { out.add(c._id); walk(c); }); })(map[editNode._id]);
+    return out;
+  })();
 
   const handleSave = async () => {
     if (!form.name.trim()) { setFErr('Name is required.'); return; }
@@ -216,298 +515,237 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
     } catch { showToast?.('Delete failed.', 'error'); }
   };
 
-  const iSt = { width:'100%', boxSizing:'border-box', padding:'10px 13px', border:'1.5px solid rgba(26,74,36,0.2)', borderRadius:9, fontSize:'0.87rem', fontFamily:'Sora,sans-serif', background:'#f8faf6', color:'#0f1a10', outline:'none' };
-  const lbl = { display:'block', marginBottom:5, fontSize:'0.7rem', fontWeight:700, color:'#52695a', textTransform:'uppercase', letterSpacing:'0.6px' };
+  const kids = selected ? map[selected._id]?.children.length || 0 : 0;
 
   return (
-    <div style={{ height:'100%', minHeight:0, display:'flex', flexDirection:'column', fontFamily:'Sora,sans-serif' }}>
+    <div className="ft">
+      <style>{css}</style>
+
       {/* ── Header ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
+      <div className="ft-head">
         <div>
-          <h1 style={{ fontFamily:'Fraunces,serif', fontSize:'1.6rem', fontWeight:900, color:'#0f1a10', margin:'0 0 2px' }}>🌳 Family Tree</h1>
-          <p style={{ color:'#6b7c6d', fontSize:'0.82rem', margin:0 }}>
-            {members.length} members · Scroll to zoom · Drag to pan
-          </p>
+          <h1 className="ft-h1">🌳 Family Tree</h1>
+          <p className="ft-lead">{members.length} members · Scroll to zoom · Drag to pan</p>
         </div>
-        <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-          {/* Search */}
-          <div style={{ position:'relative' }}>
-            <svg style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#8fbc8f', pointerEvents:'none' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search member…" className="search-input-responsive"
-           style={{ ...iSt, width:180, paddingLeft:30, padding:'9px 12px 9px 30px' }}/>
+        <div className="ft-tools">
+          <div className="ft-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input
+              className="ft-inp pill" value={search}
+              placeholder={mode === 'lineage' ? 'Search to see ancestors…' : 'Search member…'}
+              onChange={e => setSearch(e.target.value)} onKeyDown={onSearchKey}
+            />
           </div>
-          {/* Reset view */}
-          <button onClick={() => { setPan({ x:40, y:40 }); setZoom(1); }}
-            style={{ padding:'9px 16px', background:'white', border:'1.5px solid rgba(26,74,36,0.18)', borderRadius:9, fontSize:'0.8rem', fontWeight:600, color:'#52695a', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>
-            ⟳ Reset View
-          </button>
-          {/* Add root member — admin only */}
-          {isAdmin && (
-            <button onClick={() => openAdd('')}
-              style={{ padding:'9px 18px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:9, fontWeight:700, fontSize:'0.82rem', cursor:'pointer', fontFamily:'Sora,sans-serif', display:'flex', alignItems:'center', gap:6 }}>
-              + Add Root Member
-            </button>
-          )}
+          <div className="ft-seg" role="tablist" aria-label="Search mode">
+            <button className={mode === 'member' ? 'on' : ''} onClick={() => setMode('member')}>Member</button>
+            <button className={mode === 'lineage' ? 'on' : ''} onClick={() => setMode('lineage')}>Ancestors </button>
+          </div>
+          <button className="ft-btn ghost" onClick={fit}>⟳ Reset View</button>
+          {isAdmin && <button className="ft-btn" onClick={() => openAdd('')}>+ Add Root Member</button>}
         </div>
       </div>
 
       {/* Legend */}
-      <div style={{ display:'flex', gap:16, marginBottom:12, flexWrap:'wrap' }}>
-        {[['#1a4a24','Male'],['#c9973a','Female'],['rgba(0,0,0,0.25)','Deceased']].map(([color, label]) => (
-          <div key={label} style={{ display:'flex', alignItems:'center', gap:6, fontSize:'0.72rem', color:'#6b7c6d' }}>
-            <div style={{ width:12, height:12, borderRadius:3, background:color }}/>
-            {label}
-          </div>
-        ))}
-        {search && searchIds.size > 0 && (
-          <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:'0.72rem', color:'#856404', fontWeight:700 }}>
-            🔍 {searchIds.size} match{searchIds.size !== 1 ? 'es' : ''} found
-          </div>
+      <div className="ft-legend">
+        <span><i className="m" /> Male</span>
+        <span><i className="f" /> Female</span>
+        <span><i className="d" /> Deceased</span>
+        {search && matches.length > 0 && (
+          <span className="hit">
+            🔍 {matches.length} match{matches.length !== 1 ? 'es' : ''} found
+            {matches.length > 1 && <> · <b>{Math.min(matchIdx, matches.length - 1) + 1} of {matches.length}</b> · Enter for next</>}
+          </span>
         )}
+        {search && matches.length === 0 && members.length > 0 && <span className="hit">No member found</span>}
       </div>
+
+      {/* Pusht (lineage) chips */}
+      {mode === 'lineage' && chain.length > 0 && (
+        <div className="ft-lineage">
+          {chain.map((c, i) => (
+            <span key={c._id} className="ft-lchain">
+              <button
+                className={`ft-chip ${i === 0 ? 'first' : ''}`}
+                onClick={() => { goTo(c._id); setSelected(members.find(x => x._id === c._id) || null); }}
+              >
+                <small>{relLabel(i, c.gender)}</small>
+                {c.name}
+              </button>
+              {i < chain.length - 1 && <em>←</em>}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* ── Tree canvas ── */}
-      <div ref={canvasRef} style={{ flex:'1 1 0', minHeight:0, background:'white', borderRadius:16, border:'1px solid rgba(0,0,0,0.07)', boxShadow:'0 2px 12px rgba(0,0,0,0.06)', overflow:'auto', position:'relative', cursor:dragging.current?'grabbing':'grab', touchAction:'none', userSelect:'none', MozUserSelect:'none', WebkitUserSelect:'none' }}
-        onPointerDown={startDrag} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+      <div className="ft-stage">
+        <div
+          ref={canvasRef}
+          className={`ft-canvas ${dragging ? 'grabbing' : ''}`}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          {loading ? (
+            <div className="ft-center">
+              <div className="big">🌳</div>
+              <p style={{ margin: 0 }}>Loading family tree…</p>
+            </div>
+          ) : members.length === 0 ? (
+            <div className="ft-center">
+              <div className="big">🌱</div>
+              <strong>Family tree is empty</strong>
+              {isAdmin && <button className="ft-btn" onClick={() => openAdd('')}>+ Add First Member</button>}
+            </div>
+          ) : (
+            <svg>
+              <g style={{
+                transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`,
+                transformOrigin: '0 0',
+                transition: smooth ? 'transform .8s cubic-bezier(.22,1,.36,1)' : 'none',
+              }}>
+                {edges.map(e => {
+                  const lit = mode === 'lineage' && chainIds.has(e.from) && chainIds.has(e.to);
+                  const dim = mode === 'lineage' && chain.length > 0 && !lit;
+                  return <path key={e.key} className={`ft-edge ${lit ? 'lit' : ''} ${dim ? 'dim' : ''}`} d={e.d} />;
+                })}
 
-        {loading ? (
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, color:'#8a9e8c' }}>
-            <div style={{ fontSize:'2.5rem' }}>🌳</div>
-            <p style={{ margin:0, fontSize:'0.88rem' }}>Loading family tree…</p>
-          </div>
-        ) : members.length === 0 ? (
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:12, color:'#8a9e8c' }}>
-            <div style={{ fontSize:'3rem' }}>🌱</div>
-            <p style={{ margin:0, fontWeight:700, color:'#52695a' }}>Family tree is empty</p>
-            {isAdmin && (
-              <button onClick={() => openAdd('')}
-                style={{ padding:'10px 22px', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:10, fontWeight:700, cursor:'pointer', fontFamily:'Sora,sans-serif', fontSize:'0.88rem' }}>
-                + Add First Member
-              </button>
-            )}
-          </div>
-        ) : (
-          <svg ref={svgRef} width={w} height={h} style={{ display:'block', userSelect:'none' }} draggable={false}>
-            <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
-              {/* Edges */}
-              {edges.map(e => (
-                <path key={e.key} d={e.d} fill="none" stroke="rgba(26,74,36,0.25)" strokeWidth="2" strokeDasharray="5,3"/>
-              ))}
+                {members.map(m => {
+                  const pos = positions[m._id];
+                  if (!pos) return null;
+                  const isMatch  = mode === 'lineage' ? chainIds.has(m._id) : searchIds.has(m._id);
+                  const isFocus  = m._id === focusId;
+                  const isSel    = selected?._id === m._id;
+                  const isFemale = m.gender === 'female';
+                  const isDead   = !m.isAlive;
+                  const dimmed   = mode === 'lineage' ? (chain.length > 0 && !isMatch) : (searchIds.size > 0 && !isMatch);
+                  const nKids    = map[m._id]?.children.length || 0;
+                  const cls = `ft-node ${isFemale ? 'f' : ''} ${isDead ? 'd' : ''} ${dimmed ? 'dim' : ''} ${isSel ? 'sel' : ''} ${isMatch ? 'match' : ''} ${isFocus && matches.length > 1 && mode === 'member' ? 'focus' : ''}`;
 
-              {/* Nodes */}
-              {members.map(m => {
-                const pos      = positions[m._id];
-                if (!pos) return null;
-                const isMatch  = searchIds.size > 0 && searchIds.has(m._id);
-                const isSel    = selected?._id === m._id;
-                const isFemale = m.gender === 'female';
-                const isDead   = !m.isAlive;
-                const nodeBg   = isDead ? '#9e9e9e' : isFemale ? '#c9973a' : '#1a4a24';
-                const dimmed   = searchIds.size > 0 && !isMatch;
+                  return (
+                    <g key={m._id} className={cls} transform={`translate(${pos.x},${pos.y})`}
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (gesture.current.moved) return;       // it was a drag, not a tap
+                        setSelected(isSel ? null : m);
+                      }}>
+                      <rect className="ring" x={-4} y={-4} width={NODE_W + 8} height={NODE_H + 8} rx={14} />
+                      <rect className="card" width={NODE_W} height={NODE_H} rx={10} />
 
-                return (
-                  <g key={m._id} transform={`translate(${pos.x},${pos.y})`}
-                    style={{ cursor:'pointer', opacity: dimmed ? 0.25 : 1, transition:'opacity 0.2s' }}
-                    onClick={e => { e.stopPropagation(); setSelected(isSel ? null : m); }}>
+                      <text className="gi" x={NODE_W - 16} y={19} textAnchor="middle">{isFemale ? '♀' : '♂'}</text>
+                      <text className="nm" x={NODE_W / 2} y={30} textAnchor="middle">
+                        {m.name.length > 14 ? m.name.slice(0, 13) + '…' : m.name}
+                      </text>
+                      <text className="sub" x={NODE_W / 2} y={46} textAnchor="middle">
+                        {isDead ? '✝ Deceased' : m.birthYear ? `b. ${m.birthYear}` : ''}
+                      </text>
 
-                    {/* Glow if selected or search match */}
-                    {(isSel || isMatch) && (
-                      <rect x={-4} y={-4} width={NODE_W+8} height={NODE_H+8} rx={14}
-                        fill="none" stroke={isMatch ? '#c9973a' : '#2d6a3f'} strokeWidth="2.5"
-                        style={{ filter:'drop-shadow(0 0 6px rgba(201,151,58,0.5))' }}/>
-                    )}
-
-                    {/* Card */}
-                    <rect width={NODE_W} height={NODE_H} rx={10}
-                      fill={nodeBg} style={{ filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.18))' }}/>
-
-                    {/* Gender icon circle */}
-                    <circle cx={NODE_W-16} cy={16} r={8} fill="rgba(255,255,255,0.2)"/>
-                    <text x={NODE_W-16} y={20} textAnchor="middle" fontSize="9" fill="white">
-                      {isFemale ? '♀' : '♂'}
-                    </text>
-
-                    {/* Name */}
-                    <text x={NODE_W/2} y={28} textAnchor="middle" fontSize="12" fontWeight="700"
-                      fill="white" fontFamily="Sora,sans-serif"
-                      style={{ textShadow:'0 1px 2px rgba(0,0,0,0.3)' }}>
-                      {m.name.length > 14 ? m.name.slice(0,13)+'…' : m.name}
-                    </text>
-
-                    {/* Birth year / deceased */}
-                    <text x={NODE_W/2} y={44} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.7)" fontFamily="Sora,sans-serif">
-                      {isDead ? '✝ Deceased' : m.birthYear ? `b. ${m.birthYear}` : ''}
-                    </text>
-
-                    {/* Children count */}
-                    {map[m._id]?.children.length > 0 && (
-                      <g>
-                        <circle cx={16} cy={NODE_H-12} r={9} fill="rgba(255,255,255,0.2)"/>
-                        <text x={16} y={NODE_H-8} textAnchor="middle" fontSize="9" fill="white" fontWeight="700">
-                          {map[m._id].children.length}
-                        </text>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
-        )}
+                      {nKids > 0 && (
+                        <g>
+                          <circle className="cnt-bg" cx={16} cy={NODE_H - 13} r={9} />
+                          <text className="cnt" x={16} y={NODE_H - 10} textAnchor="middle">{nKids}</text>
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          )}
+        </div>
 
         {/* Zoom controls */}
-        <div style={{ position:'absolute', bottom:16, right:16, display:'flex', flexDirection:'column', gap:6 }}>
-          {[['＋', () => setZoom(z => Math.min(2, z+0.15))], ['－', () => setZoom(z => Math.max(0.3, z-0.15))]].map(([label, fn]) => (
-            <button key={label} onClick={fn}
-              style={{ width:34, height:34, borderRadius:8, border:'1px solid rgba(0,0,0,0.1)', background:'white', cursor:'pointer', fontSize:'1.1rem', fontWeight:700, boxShadow:'0 2px 8px rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {label}
-            </button>
-          ))}
-          <div style={{ textAlign:'center', fontSize:'0.65rem', color:'#8a9e8c', fontWeight:600 }}>
-            {Math.round(zoom*100)}%
-          </div>
+        <div className="ft-zoom">
+          <button onClick={() => zoomCentre(1.25)} aria-label="Zoom in">＋</button>
+          <button onClick={() => zoomCentre(0.8)} aria-label="Zoom out">－</button>
+          <small>{Math.round(view.k * 100)}%</small>
         </div>
-      </div>
 
-      {/* ── Detail panel — shown when a node is selected ── */}
-      {selected && (
-        <div>
-          <style>{`
-            @keyframes slideIn{from{opacity:0;transform:translateY(-50%) translateX(10px)}to{opacity:1;transform:translateY(-50%) translateX(0)}}
-            @media(max-width: 860px) {
-              .family-tree-detail-panel {
-                position: static !important;
-                transform: none !important;
-                right: auto !important;
-                top: auto !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin-top: 16px !important;
-              }
-            }
-          `}</style>
-          <div className="family-tree-detail-panel" style={{ position:'fixed', right:24, top:'50%', transform:'translateY(-50%)', zIndex:500,
-            background:'white', borderRadius:16, padding:'20px 22px', width:240,
-            boxShadow:'0 12px 40px rgba(0,0,0,0.15)', border:'1px solid rgba(0,0,0,0.07)',
-            animation:'slideIn 0.2s ease' }}>
-          <button onClick={() => setSelected(null)}
-            style={{ position:'absolute', top:10, right:12, background:'none', border:'none', fontSize:'1.1rem', cursor:'pointer', color:'#aaa' }}>×</button>
+        {/* ── Detail panel ── */}
+        {selected && (
+          <div className="ft-panel">
+            <button className="ft-x" onClick={() => setSelected(null)} aria-label="Close">×</button>
 
-          <div style={{ width:44, height:44, borderRadius:12,
-            background: !selected.isAlive ? '#9e9e9e' : selected.gender==='female' ? '#c9973a' : '#1a4a24',
-            display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1.3rem', marginBottom:12 }}>
-            {selected.gender==='female' ? '♀' : '♂'}
+            <div className={`ft-av ${selected.gender === 'female' ? 'f' : ''} ${!selected.isAlive ? 'd' : ''}`}>
+              {selected.gender === 'female' ? '♀' : '♂'}
+            </div>
+
+            <div className="ft-pname">{selected.name}</div>
+            {selected.birthYear && <div className="ft-pline">Born: {selected.birthYear}</div>}
+            <div className="ft-pline">{selected.isAlive ? '✅ Alive' : '✝ Deceased'}</div>
+            {selected.note && <div className="ft-pnote">"{selected.note}"</div>}
+
+            {kids > 0 && (
+              <div className="ft-pkids">👶 {kids} child{kids !== 1 ? 'ren' : ''}</div>
+            )}
+
+            {isAdmin && (
+              <div className="ft-pacts">
+                <button className="ft-btn block" onClick={() => openAdd(selected._id)}>+ Add Child</button>
+                <button className="ft-btn ghost block" onClick={() => openEdit(selected)}>✏️ Edit</button>
+                <button className="ft-btn danger block" onClick={() => setDelConfirm(selected)}>🗑 Delete</button>
+              </div>
+            )}
           </div>
-
-          <div style={{ fontFamily:'Fraunces,serif', fontWeight:700, fontSize:'1rem', color:'#0f1a10', marginBottom:4 }}>{selected.name}</div>
-          {selected.birthYear && <div style={{ fontSize:'0.78rem', color:'#6b7c6d', marginBottom:2 }}>Born: {selected.birthYear}</div>}
-          <div style={{ fontSize:'0.78rem', color:'#6b7c6d', marginBottom:2 }}>{selected.isAlive ? '✅ Alive' : '✝ Deceased'}</div>
-          {selected.note && <div style={{ fontSize:'0.78rem', color:'#52695a', fontStyle:'italic', marginBottom:8 }}>"{selected.note}"</div>}
-
-          {map[selected._id]?.children.length > 0 && (
-            <div style={{ fontSize:'0.75rem', color:'#1a4a24', fontWeight:700, marginBottom:8 }}>
-              👶 {map[selected._id].children.length} child{map[selected._id].children.length!==1?'ren':''}
-            </div>
-          )}
-
-          {/* Admin actions */}
-          {isAdmin && (
-            <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:12, paddingTop:12, borderTop:'1px solid #f0f0f0' }}>
-              <button onClick={() => openAdd(selected._id)}
-                style={{ padding:'9px 0', background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', color:'white', border:'none', borderRadius:8, fontWeight:700, fontSize:'0.8rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>
-                + Add Child
-              </button>
-              <button onClick={() => openEdit(selected)}
-                style={{ padding:'9px 0', background:'#e8f5eb', color:'#1a4a24', border:'1px solid rgba(26,74,36,0.2)', borderRadius:8, fontWeight:700, fontSize:'0.8rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>
-                ✏️ Edit
-              </button>
-              <button onClick={() => setDelConfirm(selected)}
-                style={{ padding:'9px 0', background:'#fde8e8', color:'#c0392b', border:'1px solid #f5c6c6', borderRadius:8, fontWeight:700, fontSize:'0.8rem', cursor:'pointer', fontFamily:'Sora,sans-serif' }}>
-                🗑 Delete
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-      )}
 
       {/* ── Add / Edit modal ── */}
       {showForm && (
-        <div style={{ position:'fixed', inset:0, zIndex:9000, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
-          onClick={e => e.target===e.currentTarget && setShowForm(false)}>
-          <div style={{ background:'white', borderRadius:20, width:'100%', maxWidth:440, boxShadow:'0 24px 64px rgba(0,0,0,0.2)', overflow:'auto', fontFamily:'Sora,sans-serif' }}>
-            <div style={{ background:'linear-gradient(135deg,#1a4a24,#2d6a3f)', padding:'18px 22px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span style={{ fontFamily:'Fraunces,serif', fontWeight:900, fontSize:'1.05rem', color:'white' }}>
-                {editNode ? '✏️ Edit Member' : '+ Add Family Member'}
-              </span>
-              <button onClick={() => setShowForm(false)}
-                style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:7, width:30, height:30, color:'white', cursor:'pointer', fontSize:'1rem', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+        <div className="ft-overlay" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+          <div className="ft-modal" style={{ maxWidth: 460 }}>
+            <div className="ft-mh">
+              <h3>{editNode ? '✏️ Edit Member' : '+ Add Family Member'}</h3>
+              <button className="ft-x" style={{ position: 'static' }} onClick={() => setShowForm(false)} aria-label="Close">×</button>
             </div>
-            <div style={{ padding:'22px 24px' }}>
-              {/* Name */}
-              <div style={{ marginBottom:14 }}>
-                <label style={lbl}>Full Name *</label>
-                <input value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))}
-                  placeholder="e.g. Ahmad Jan" style={iSt}
-                  onFocus={e => e.target.style.borderColor='#2d6a3f'}
-                  onBlur={e => e.target.style.borderColor='rgba(26,74,36,0.2)'}/>
+            <div className="ft-mb">
+              <div className="ft-ff">
+                <label className="ft-fl">Full Name *</label>
+                <input className="ft-inp" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Ahmad Jan" />
               </div>
 
-              {/* Parent */}
-              <div style={{ marginBottom:14 }}>
-                <label style={lbl}>Parent (Father / Mother)</label>
-                <select value={form.parentId} onChange={e => setForm(f => ({...f, parentId:e.target.value}))} style={iSt}>
+              <div className="ft-ff">
+                <label className="ft-fl">Parent (Father / Mother)</label>
+                <select className="ft-inp" value={form.parentId} onChange={e => setForm(f => ({ ...f, parentId: e.target.value }))}>
                   <option value="">— No parent (root member) —</option>
-                  {members.map(m => (
+                  {members.filter(m => !blockedParents.has(m._id)).map(m => (
                     <option key={m._id} value={m._id}>{m.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Gender + Birth year */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+              <div className="ft-two ft-ff">
                 <div>
-                  <label style={lbl}>Gender</label>
-                  <select value={form.gender} onChange={e => setForm(f => ({...f, gender:e.target.value}))} style={iSt}>
+                  <label className="ft-fl">Gender</label>
+                  <select className="ft-inp" value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
                 </div>
                 <div>
-                  <label style={lbl}>Birth Year</label>
-                  <input type="number" value={form.birthYear} onChange={e => setForm(f => ({...f, birthYear:e.target.value}))}
-                    placeholder="e.g. 1980" style={iSt}
-                    onFocus={e => e.target.style.borderColor='#2d6a3f'}
-                    onBlur={e => e.target.style.borderColor='rgba(26,74,36,0.2)'}/>
+                  <label className="ft-fl">Birth Year</label>
+                  <input className="ft-inp" type="number" value={form.birthYear} onChange={e => setForm(f => ({ ...f, birthYear: e.target.value }))} placeholder="e.g. 1980" />
                 </div>
               </div>
 
-              {/* Note */}
-              <div style={{ marginBottom:14 }}>
-                <label style={lbl}>Note (optional)</label>
-                <input value={form.note} onChange={e => setForm(f => ({...f, note:e.target.value}))}
-                  placeholder="e.g. Eldest son" style={iSt}
-                  onFocus={e => e.target.style.borderColor='#2d6a3f'}
-                  onBlur={e => e.target.style.borderColor='rgba(26,74,36,0.2)'}/>
+              <div className="ft-ff">
+                <label className="ft-fl">Note (optional)</label>
+                <input className="ft-inp" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="e.g. Eldest son" />
               </div>
 
-              {/* Alive toggle */}
-              <div style={{ marginBottom:18, display:'flex', alignItems:'center', gap:10 }}>
-                <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'0.85rem', color:'#52695a', fontWeight:600 }}>
-                  <input type="checkbox" checked={form.isAlive}
-                    onChange={e => setForm(f => ({...f, isAlive:e.target.checked}))}
-                    style={{ width:16, height:16, accentColor:'#1a4a24' }}/>
+              <div className="ft-ff" style={{ marginBottom: 22 }}>
+                <label className="ft-check">
+                  <input type="checkbox" checked={form.isAlive} onChange={e => setForm(f => ({ ...f, isAlive: e.target.checked }))} />
                   Currently Alive
                 </label>
               </div>
 
-              {fErr && <div style={{ padding:'9px 13px', background:'#fde8e8', borderRadius:9, marginBottom:14, fontSize:'0.82rem', color:'#c0392b', fontWeight:600 }}>⚠️ {fErr}</div>}
+              {fErr && <div className="ft-err">⚠️ {fErr}</div>}
 
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={() => setShowForm(false)}
-                  style={{ flex:1, padding:'12px', background:'#f5f5f5', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'Sora,sans-serif', fontWeight:600, color:'#555', fontSize:'0.88rem' }}>Cancel</button>
-                <button onClick={handleSave} disabled={saving}
-                  style={{ flex:2, padding:'12px', background:saving?'#ccc':'linear-gradient(135deg,#1a4a24,#2d6a3f)', border:'none', borderRadius:10, color:'white', cursor:saving?'wait':'pointer', fontFamily:'Sora,sans-serif', fontWeight:700, fontSize:'0.9rem' }}>
+              <div className="ft-row">
+                <button className="ft-btn ghost f1" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="ft-btn f2" onClick={handleSave} disabled={saving}>
                   {saving ? 'Saving…' : editNode ? 'Save Changes' : 'Add Member'}
                 </button>
               </div>
@@ -518,19 +756,15 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
       {/* ── Delete confirm ── */}
       {delConfirm && (
-        <div style={{ position:'fixed', inset:0, zIndex:9000, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
-          onClick={e => e.target===e.currentTarget && setDelConfirm(null)}>
-          <div style={{ background:'white', borderRadius:20, width:'100%', maxWidth:380, padding:'28px 26px', boxShadow:'0 24px 64px rgba(0,0,0,0.2)', fontFamily:'Sora,sans-serif' }}>
-            <div style={{ fontSize:'2rem', marginBottom:10 }}>⚠️</div>
-            <h3 style={{ fontFamily:'Fraunces,serif', fontSize:'1.05rem', color:'#0f1a10', margin:'0 0 10px' }}>Delete "{delConfirm.name}"?</h3>
-            <p style={{ color:'#52695a', fontSize:'0.85rem', lineHeight:1.6, margin:'0 0 20px' }}>
-              This will also delete all of their descendants in the tree. This action cannot be undone.
-            </p>
-            <div style={{ display:'flex', gap:10 }}>
-              <button onClick={() => setDelConfirm(null)}
-                style={{ flex:1, padding:'11px', background:'#f5f5f5', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'Sora,sans-serif', fontWeight:600, color:'#555' }}>Cancel</button>
-              <button onClick={handleDelete}
-                style={{ flex:1, padding:'11px', background:'#c0392b', border:'none', borderRadius:10, color:'white', cursor:'pointer', fontFamily:'Sora,sans-serif', fontWeight:700 }}>Delete</button>
+        <div className="ft-overlay" onClick={e => e.target === e.currentTarget && setDelConfirm(null)}>
+          <div className="ft-modal" style={{ maxWidth: 400 }}>
+            <div className="ft-mh"><h3>⚠️ Delete "{delConfirm.name}"?</h3></div>
+            <div className="ft-mb">
+              <p className="ft-mtext">This will also delete all of their descendants in the tree. This action cannot be undone.</p>
+              <div className="ft-row">
+                <button className="ft-btn ghost f1" onClick={() => setDelConfirm(null)}>Cancel</button>
+                <button className="ft-btn solid-danger f1" onClick={handleDelete}>Delete</button>
+              </div>
             </div>
           </div>
         </div>
