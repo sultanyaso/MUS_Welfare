@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Landing         from './pages/Landing';
 import Login           from './pages/Login';
 import Signup          from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AdminDashboard  from './pages/AdminDashboard';
 import MemberDashboard from './pages/MemberDashboard';
 import { useResponsive } from './hooks/useResponsive';
@@ -37,6 +39,8 @@ function AppRoutes() {
       <Route path="/"          element={<Landing />} />
       <Route path="/login"     element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/signup"    element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/dashboard" element={<PrivateRoute><MemberDashboard /></PrivateRoute>} />
       <Route path="/admin"     element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="*"          element={<Navigate to="/" replace />} />

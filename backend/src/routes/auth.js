@@ -4,9 +4,12 @@ import jwt      from 'jsonwebtoken';
 import crypto   from 'crypto';
 import User     from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
-import { sendVerificationEmail, sendCongratsEmail } from '../utils/mailer.js';
+import { sendVerificationEmail, sendCongratsEmail, sendEmail } from '../utils/mailer.js';
 
 const router = express.Router();
+
+// Only the SHA-256 hash of a reset token is stored in the database
+const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
 // ── POST /api/auth/register ──────────────────────────────────
 router.post('/register', async (req, res) => {
@@ -116,7 +119,8 @@ router.get('/verify-email', async (req, res) => {
     await user.save();
 
     // Redirect to frontend login with success flag
-    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    //const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
     return res.redirect(`${FRONTEND_URL}/login?verified=1`);
 
   } catch (err) {
@@ -296,6 +300,80 @@ router.patch('/update-profile', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Update profile error:', err);
     return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ── POST /api/auth/forgot-password ───────────────────────────
+// Always answers the same way, so nobody can discover which emails are registered
+router.post('/forgot-password', async (req, res) => {
+  const reply = { message: 'If an account exists for that email, a reset link has been sent.' };
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      user.resetPasswordToken   = hashToken(token);               // only the hash is stored
+      user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;    // valid for 1 hour
+      await user.save({ validateBeforeSave: false });
+
+      // strip trailing slash so the link never becomes https://site//reset-password/...
+      const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+      const link = `${FRONTEND_URL}/reset-password/${token}`;
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'Reset your MUS Welfare password',
+          html: `<p>Hi ${user.fullName || ''},</p>
+                 <p>Click the button below to choose a new password. This link is valid for 1 hour.</p>
+                 <p><a href="${link}" style="display:inline-block;padding:12px 24px;background:#39ffb0;color:#04110b;border-radius:99px;text-decoration:none;font-weight:600">Reset password</a></p>
+                 <p>If you did not request this, you can ignore this email.</p>`,
+        });
+      } catch (mailErr) {
+        // Keep the generic reply so a mail failure can't reveal that the account exists
+        console.error('Reset email failed to send:', mailErr.message);
+      }
+    }
+
+    return res.json(reply);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ message: 'Could not process your request. Please try again later.' });
+  }
+});
+
+// ── POST /api/auth/reset-password/:token ─────────────────────
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken:   hashToken(req.params.token),
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+    }
+
+    // Hashed manually (same as register / change-password above) — this file has no pre-save hook
+    user.password             = await bcrypt.hash(password, 12);
+    user.resetPasswordToken   = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({ message: 'Password updated. You can now sign in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ message: 'Could not reset password. Please try again.' });
   }
 });
 

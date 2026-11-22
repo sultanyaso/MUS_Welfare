@@ -10,6 +10,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// ── Generic sender (used by forgot-password) ─────────────────
+// Throws on failure, so callers decide how to handle it.
+export async function sendEmail({ to, subject, html }) {
+  await transporter.sendMail({
+    from: `"MUS Welfare" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
 // ── Send Email Verification Link ─────────────────────────────
 export async function sendVerificationEmail(toEmail, fullName, verifyToken) {
   const BASE_URL = process.env.BACKEND_URL || 'http://localhost:5000' ||'https://mus-welfare.vercel.app';
