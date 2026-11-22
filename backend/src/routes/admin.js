@@ -143,6 +143,30 @@ router.patch('/members/:id/deactivate', async (req, res) => {
   } catch (err) { return res.status(500).json({ message: 'Server error.' }); }
 });
 
+// ── PATCH /api/admin/members/:id/role ────────────────────────
+// Assign or remove the Finance Secretary role  { role: 'finance_secretary' | 'member' }
+router.patch('/members/:id/role', async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['member', 'finance_secretary'].includes(role)) {
+      return res.status(400).json({ message: "Role must be 'member' or 'finance_secretary'." });
+    }
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'Member not found.' });
+    if (target.role === 'admin') return res.status(400).json({ message: 'Admin role cannot be changed.' });
+    if (role === 'finance_secretary' && target.status !== 'active') {
+      return res.status(400).json({ message: 'Only active members can become Finance Secretary.' });
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
+    return res.json({
+      message: role === 'finance_secretary'
+        ? `${user.fullName} is now Finance Secretary.`
+        : `${user.fullName} is now a regular member.`,
+      user,
+    });
+  } catch (err) { return res.status(500).json({ message: 'Server error.' }); }
+});
+
 // ── DELETE /api/admin/members/:id ────────────────────────────
 router.delete('/members/:id', async (req, res) => {
   try {
