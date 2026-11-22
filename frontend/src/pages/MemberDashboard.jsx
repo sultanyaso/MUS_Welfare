@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { memberAPI, announcementAPI } from '../api';
+import { memberAPI, announcementAPI, financeAPI } from '../api';
 import FamilyTreePage from './FamilyTreePage';
+import { VerifyPaymentsPage, PaymentReportPage, FIN_CSS } from './FinancePages';
 
 const MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CUR_YEAR  = new Date().getFullYear();
@@ -333,6 +334,8 @@ const PATHS = {
   calendar:  <><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
   check:     <path d="m5 12 5 5L20 7"/>,
   clock:     <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+  verify:    <><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></>,
+  report:    <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></>,
 };
 function I({ n, size = 18 }) {
   return (
@@ -455,7 +458,7 @@ function NavItem({ icon, label, active, onClick, badge, dot, accent, hasExp }) {
   );
 }
 
-function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collapsed, onToggle, isMobile, mobileOpen, closeMobile, onPayNow, theme, toggleTheme, annDot }) {
+function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collapsed, onToggle, isMobile, mobileOpen, closeMobile, onPayNow, theme, toggleTheme, annDot, isFinance, finPending }) {
   const [q,        setQ]        = useState('');
   const [payOpen,  setPayOpen]  = useState(true);
   const [menu,     setMenu]     = useState(false);
@@ -491,9 +494,14 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
     { key:'family-tree',   label:'Family Tree',   icon:'tree' },
   ].filter(i => match(i.label));
 
+  const finItems = !isFinance ? [] : [
+    { key:'verify-payments', label:'Verify Payments', icon:'verify', badge: finPending },
+    { key:'payment-report',  label:'Payment Report',  icon:'report' },
+  ].filter(i => match(i.label));
+
   const showPayments = match('Payments') || match('My Payments') || match('Organisation');
   const showPayNow   = match('Pay Now');
-  const nothing      = main.length === 0 && !showPayments && !showPayNow;
+  const nothing      = main.length === 0 && !showPayments && !showPayNow && finItems.length === 0;
 
   const subs = [
     { key:'mine', label:'My Payments',  color:'#9db8ff' },
@@ -515,7 +523,7 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
             </div>
             <div className="brand-txt">
               <div className="brand-name">MUS Welfare</div>
-              <div className="brand-sub">Member Portal</div>
+              <div className="brand-sub">{isFinance ? 'Finance Secretary' : 'Member Portal'}</div>
             </div>
             {isMobile
               ? <button className="icon-btn" onClick={closeMobile} aria-label="Close menu"><I n="close" size={16}/></button>
@@ -563,6 +571,17 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
                 </div>
               </>
             )}
+
+
+            {finItems.length > 0 && (
+              <>
+                <div className="sec-label">Finance</div>
+                {finItems.map(i => (
+                  <NavItem key={i.key} icon={i.icon} label={i.label} badge={i.badge} active={page === i.key} onClick={() => go(i.key)}/>
+                ))}
+              </>
+            )}
+
 
             {showPayNow && (
               <>
@@ -615,15 +634,21 @@ const DOCK_ITEMS = [
   { key: 'family-tree',   label: 'Family Tree',   icon: 'tree' },
 ];
 
-function Dock({ page, setPage, stats, annDot }) {
-  const idx = Math.max(0, DOCK_ITEMS.findIndex(d => d.key === page));
-  const showDot = d => (d === 'ann' ? annDot : d === 'pay' ? (stats?.myPending || 0) > 0 : false);
+const FIN_DOCK_ITEMS = [
+  { key: 'verify-payments', label: 'Verify Payments', icon: 'verify', dot: 'fin' },
+  { key: 'payment-report',  label: 'Payment Report',  icon: 'report' },
+];
+
+function Dock({ page, setPage, stats, annDot, isFinance, finPending }) {
+  const items = isFinance ? [...DOCK_ITEMS, ...FIN_DOCK_ITEMS] : DOCK_ITEMS;
+  const idx = Math.max(0, items.findIndex(d => d.key === page));
+  const showDot = d => (d === 'ann' ? annDot : d === 'pay' ? (stats?.myPending || 0) > 0 : d === 'fin' ? finPending > 0 : false);
   return (
     <div className="dk-wrap">
-      <nav className="dk" aria-label="Pages" style={{ '--i': idx, '--n': DOCK_ITEMS.length }}>
+      <nav className="dk" aria-label="Pages" style={{ '--i': idx, '--n': items.length }}>
         <div className="dk-cone" />
-        <div className="dk-grid" style={{ gridTemplateColumns: `repeat(${DOCK_ITEMS.length}, 1fr)` }}>
-          {DOCK_ITEMS.map(({ key, label, icon, dot }) => (
+        <div className="dk-grid" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+          {items.map(({ key, label, icon, dot }) => (
             <button
               key={key}
               className={`dk-item${page === key ? ' active' : ''}`}
@@ -1451,6 +1476,8 @@ function AnnouncementsPage() {
 ══════════════════════════════════════════════════════ */
 export default function MemberDashboard() {
   const { user, logout } = useAuth();
+  const isFinance = user?.role === 'finance_secretary';
+  const [finPending, setFinPending] = useState(0);
 
   const isMobile = useMedia('(max-width: 900px), (pointer: coarse) and (max-height: 520px)');
   const isTablet = useMedia('(max-width: 1100px)');
@@ -1511,6 +1538,12 @@ export default function MemberDashboard() {
   }, []);
 
   useEffect(() => { fetchStats(); fetchMyPayments(); }, [fetchStats, fetchMyPayments]);
+    /* Finance Secretary only: number of payments waiting for verification */
+  const fetchFinPending = useCallback(() => {
+    if (!isFinance) return;
+    financeAPI.getStats().then(r => setFinPending(r.data.pendingPayments || 0)).catch(() => {});
+  }, [isFinance]);
+  useEffect(() => { fetchFinPending(); }, [fetchFinPending]);
 
   /* Dot on "Announcements" when something was posted in the last 7 days */
   useEffect(() => {
@@ -1533,6 +1566,7 @@ export default function MemberDashboard() {
     <div className={`md-root${isMobile ? ' is-mobile' : ''}`} data-theme={theme}>
       <style>{CSS}</style>
       <style>{dockCss}</style>
+      <style>{FIN_CSS}</style>
 
       {/* Mobile top bar */}
       <header className="md-topbar">
@@ -1552,7 +1586,8 @@ export default function MemberDashboard() {
         stats={stats} user={user} logout={logout}
         collapsed={collapsed} onToggle={() => setSideOpen(v => !v)}
         isMobile={isMobile} mobileOpen={mobileOpen} closeMobile={() => setMobileOpen(false)}
-        onPayNow={openPayNow} theme={theme} toggleTheme={toggleTheme} annDot={annDot}
+       onPayNow={openPayNow} theme={theme} toggleTheme={toggleTheme} annDot={annDot}
+        isFinance={isFinance} finPending={finPending}
       />
 
       <main className="md-main">
@@ -1565,6 +1600,8 @@ export default function MemberDashboard() {
         )}
         {page === 'announcements' && <AnnouncementsPage/>}
         {page === 'family-tree' && <FamilyTreePage isAdmin={false} showToast={showToast}/>}
+        {isFinance && page === 'verify-payments' && <VerifyPaymentsPage showToast={showToast} onChanged={fetchFinPending}/>}
+        {isFinance && page === 'payment-report'  && <PaymentReportPage showToast={showToast} user={user}/>}
       </main>
 
       {showPayNow && (
@@ -1572,7 +1609,7 @@ export default function MemberDashboard() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast}/>}
-      {isMobile && <Dock page={page} setPage={setPage} stats={stats} annDot={annDot}/>}
+      {isMobile && <Dock page={page} setPage={setPage} stats={stats} annDot={annDot} isFinance={isFinance} finPending={finPending}/>}
     </div>
   );
 }
