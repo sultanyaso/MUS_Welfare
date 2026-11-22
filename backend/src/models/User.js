@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     phone:            { type: String, default: '' },
     memberType:       { type: String, enum: ['job_holder', 'student'], required: true },
     castFamily:       { type: String, default: '' },
-    role:             { type: String, enum: ['member', 'admin'], default: 'member' },
+    role:             { type: String, enum: ['member', 'finance_secretary','admin'], default: 'member' },
     status:           { type: String, enum: ['pending', 'active', 'inactive', 'rejected'], default: 'pending' },
     totalContributed: { type: Number, default: 0 },
 
