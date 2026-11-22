@@ -963,6 +963,8 @@ function MembersPage({ initialFilter = 'pending', showToast, onRefreshStats }) {
       else if (action === 'reject')     res = await adminAPI.reject(id);
       else if (action === 'deactivate') res = await adminAPI.deactivate(id);
       else if (action === 'delete')     res = await adminAPI.deleteMember(id);
+      else if (action === 'make-finance')   res = await adminAPI.setRole(id, 'finance_secretary');
+      else if (action === 'remove-finance') res = await adminAPI.setRole(id, 'member');
       showToast(res.data.message, 'success');
       load(filter);
       onRefreshStats();
@@ -1059,7 +1061,9 @@ function MemberRow({ member: m, isLoading, onAction }) {
         <div className="cell-person">
           <Avatar name={m.fullName} size={34} />
           <div>
-            <div className="cell-name">{m.fullName}</div>
+            <div className="cell-name">{m.fullName}
+              {m.role === 'finance_secretary' && <span style={{ marginLeft:8, fontSize:'.62rem', fontWeight:700, padding:'2px 8px', borderRadius:20, background:'rgba(var(--accent-rgb),.14)', color:'var(--accent-text)', whiteSpace:'nowrap' }}>💰 Finance Secretary</span>}
+            </div>
             <div className="cell-sub">{m.email}</div>
           </div>
         </div>
@@ -1077,6 +1081,8 @@ function MemberRow({ member: m, isLoading, onAction }) {
             <Btn label="Approve" tone="ok" disabled={isLoading} onClick={() => onAction(m._id,'approve')} />
             <Btn label="Reject" tone="danger" disabled={isLoading} onClick={() => onAction(m._id,'reject')} />
           </>}
+                    {m.status === 'active' && m.role === 'member' && <Btn label="Make Finance Secretary" tone="ok" disabled={isLoading} onClick={() => onAction(m._id,'make-finance')} />}
+          {m.status === 'active' && m.role === 'finance_secretary' && <Btn label="Remove Finance Role" tone="warn" disabled={isLoading} onClick={() => onAction(m._id,'remove-finance')} />}
           {m.status === 'active' && <Btn label="Deactivate" tone="warn" disabled={isLoading} onClick={() => onAction(m._id,'deactivate')} />}
           {(m.status === 'inactive' || m.status === 'rejected') && <Btn label="Approve" tone="ok" disabled={isLoading} onClick={() => onAction(m._id,'approve')} />}
           {m.role !== 'admin' && <Btn label="Delete" disabled={isLoading} onClick={() => onAction(m._id,'delete')} />}
