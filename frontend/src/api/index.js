@@ -44,6 +44,7 @@ export const adminAPI = {
   getPendingPayments: ()             => api.get('/admin/pending-payments'),
   approvePayment:     (id, note='') => api.patch(`/admin/pending-payments/${id}/approve`, { adminNote: note }),
   rejectPayment:      (id, note='') => api.patch(`/admin/pending-payments/${id}/reject`,  { adminNote: note }),
+  setRole:            (id, role)     => api.patch(`/admin/members/${id}/role`, { role }),
 };
 
 export const paymentAPI = {
@@ -52,6 +53,14 @@ export const paymentAPI = {
   getSummary:        (year)        => api.get('/payments/summary', { params: { year } }),
   getMemberPayments: (memberId)    => api.get(`/payments/member/${memberId}`),
   deletePayment:     id            => api.delete(`/payments/${id}`),
+};
+
+export const financeAPI = {
+  getStats:           ()             => api.get('/finance/stats'),
+  getPendingPayments: ()             => api.get('/finance/pending-payments'),
+  approvePayment:     (id, note='') => api.patch(`/finance/pending-payments/${id}/approve`, { adminNote: note }),
+  rejectPayment:      (id, note='') => api.patch(`/finance/pending-payments/${id}/reject`,  { adminNote: note }),
+  getReport:          (params)       => api.get('/finance/report', { params }),
 };
 
 export const memberAPI = {
