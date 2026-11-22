@@ -31,8 +31,6 @@ export const authAPI = {
   login:     data => api.post('/auth/login', data),
   me:        ()   => api.get('/auth/me'),
   seedAdmin: data => api.post('/auth/seed-admin', data),
-  forgotPassword: (data)        => api.post('/auth/forgot-password', data),
-  resetPassword:  (token, data) => api.post(`/auth/reset-password/${token}`, data),
 };
 
 export const adminAPI = {
