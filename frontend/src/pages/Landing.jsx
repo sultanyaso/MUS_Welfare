@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 function OrgLogo({ size = 34 }) {
   return (
     <img
-      src="/mus.jpg"
+      src="/mus-log.jpeg"
       alt="MUS Welfare logo"
       style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.14)' }}
     />
@@ -172,7 +172,7 @@ function Hero() {
         {/* One-side-lit logo render */}
         <div className="hero-visual rise" style={{ animationDelay: '0.6s', animationDuration: '2s' }}>
           <div className="render">
-            <img src="/mus.jpg" alt="MUS Welfare Organization" />
+            <img src="/mus-log.jpeg" alt="MUS Welfare Organization" />
             <div className="render-shade" />
             <div className="render-rim" />
           </div>

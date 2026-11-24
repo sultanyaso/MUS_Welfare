@@ -292,7 +292,7 @@ export default function Login() {
       `}</style>
 
       <Link to="/" className="brand">
-        <img src="/mus.jpg" alt="MUS Welfare logo" />
+        <img src="/mus-log.jpeg" alt="MUS Welfare logo" />
         <div>
           <div className="brand-name">MUS Welfare</div>
           <div className="brand-sub">Organization</div>

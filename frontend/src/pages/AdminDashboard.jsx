@@ -562,7 +562,7 @@ function AdminSidebar({
         <div className="nv-glow" />
 
         <div className="nv-head">
-          <img className="nv-logo" src="/mus.jpg" alt="MUS Welfare logo" />
+          <img className="nv-logo" src="/mus-log.jpeg" alt="MUS Welfare logo" />
           <div className="nv-brand">
             <div className="nv-name">MUS Welfare</div>
             <div className="nv-sub">Admin Panel</div>
@@ -1792,7 +1792,7 @@ export default function AdminDashboard() {
       {/* Mobile top bar */}
       <header className="topbar">
   <div className="brand">
-    <img src="/mus.jpg" alt="MUS Welfare logo" />
+    <img src="/mus-log.jpeg" alt="MUS Welfare logo" />
     <div>
       <div className="sb-name">MUS Welfare</div>
       <div className="sb-sub">Admin Panel</div>
