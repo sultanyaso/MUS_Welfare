@@ -36,6 +36,45 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
+// ── POST /api/family-tree/bulk — add several children to one parent (admin only)
+// body: { parentId, children: [{ name, gender, isAlive, dob }] }
+router.post('/bulk', requireAdmin, async (req, res) => {
+  try {
+    const { parentId, children } = req.body;
+    if (!parentId) return res.status(400).json({ message: 'parentId is required.' });
+    if (!Array.isArray(children) || children.length === 0 || children.length > 30) {
+      return res.status(400).json({ message: 'Provide between 1 and 30 children.' });
+    }
+    const parent = await FamilyMember.findById(parentId);
+    if (!parent) return res.status(404).json({ message: 'Parent not found.' });
+
+    const docs = [];
+    for (let i = 0; i < children.length; i++) {
+      const c = children[i];
+      if (!c.name?.trim()) return res.status(400).json({ message: `Child ${i + 1}: name is required.` });
+      let dob = null, birthYear = null;
+      if (c.dob) {
+        dob = new Date(c.dob);
+        if (isNaN(dob)) return res.status(400).json({ message: `Child ${i + 1}: invalid date of birth.` });
+        birthYear = dob.getUTCFullYear();
+      }
+      docs.push({
+        name:      c.name.trim(),
+        parentId,
+        gender:    c.gender === 'female' ? 'female' : 'male',
+        dob, birthYear,
+        isAlive:   c.isAlive !== false,
+        addedBy:   req.user.id,
+      });
+    }
+    const created = await FamilyMember.insertMany(docs);
+    return res.status(201).json({ message: `${created.length} child(ren) added.`, members: created });
+  } catch (err) {
+    console.error('Bulk add children error:', err);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
 // ── PATCH /api/family-tree/:id — edit member (admin only)
 router.patch('/:id', requireAdmin, async (req, res) => {
   try {
