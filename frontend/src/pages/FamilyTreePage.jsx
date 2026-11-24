@@ -260,6 +260,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
   const emptyForm = { name: '', parentId: '', gender: 'male', birthYear: '', note: '', isAlive: true };
   const [form,   setForm]   = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [kidsModal, setKidsModal] = useState(null);   // { parent, step: 1 | 2, count, kids: [] }
   const [fErr,   setFErr]   = useState('');
 
   const load = useCallback(async () => {
@@ -465,6 +466,34 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
     setFErr('');
     setShowForm(true);
   };
+
+    /* ── add several children at once ── */
+  const openAddChildren = parent => { setFErr(''); setKidsModal({ parent, step: 1, count: '', kids: [] }); };
+
+  const startKids = () => {
+    const n = parseInt(kidsModal.count, 10);
+    if (!n || n < 1 || n > 30) { setFErr('Enter a number between 1 and 30.'); return; }
+    setFErr('');
+    setKidsModal(m => ({ ...m, step: 2, kids: Array.from({ length: n }, () => ({ name: '', gender: 'male', isAlive: true, dob: '' })) }));
+  };
+
+  const updateKid = (i, patch) =>
+    setKidsModal(m => ({ ...m, kids: m.kids.map((k, idx) => (idx === i ? { ...k, ...patch } : k)) }));
+
+  const saveKids = async () => {
+    const bad = kidsModal.kids.findIndex(k => !k.name.trim());
+    if (bad !== -1) { setFErr(`Child ${bad + 1}: name is required.`); return; }
+    setSaving(true); setFErr('');
+    try {
+      await familyAPI.addChildren(kidsModal.parent._id, kidsModal.kids);
+      showToast?.(`${kidsModal.kids.length} child(ren) added to the family tree.`, 'success');
+      setKidsModal(null); setSelected(null); load();
+    } catch (err) {
+      setFErr(err.response?.data?.message || 'Save failed.');
+    } finally { setSaving(false); }
+  };
+
+
 
   const openEdit = node => {
     setEditNode(node);
@@ -682,7 +711,7 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
             {isAdmin && (
               <div className="ft-pacts">
-                <button className="ft-btn block" onClick={() => openAdd(selected._id)}>+ Add Child</button>
+                <button className="ft-btn block" onClick={() => openAddChildren(selected)}>+ Add Children</button>
                 <button className="ft-btn ghost block" onClick={() => openEdit(selected)}>✏️ Edit</button>
                 <button className="ft-btn danger block" onClick={() => setDelConfirm(selected)}>🗑 Delete</button>
               </div>
@@ -690,6 +719,75 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
           </div>
         )}
       </div>
+
+
+            {/* ── Add children modal (step 1: how many, step 2: details of each) ── */}
+      {kidsModal && (
+        <div className="ft-overlay" onClick={e => e.target === e.currentTarget && setKidsModal(null)}>
+          <div className="ft-modal" style={{ maxWidth: 520 }}>
+            <div className="ft-mh">
+              <h3>+ Add Children of {kidsModal.parent.name}</h3>
+              <button className="ft-x" style={{ position: 'static' }} onClick={() => setKidsModal(null)} aria-label="Close">×</button>
+            </div>
+            <div className="ft-mb">
+              {kidsModal.step === 1 ? (
+                <>
+                  <div className="ft-ff">
+                    <label className="ft-fl">How many children?</label>
+                    <input className="ft-inp" type="number" min="1" max="30" autoFocus value={kidsModal.count}
+                      onChange={e => setKidsModal(m => ({ ...m, count: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && startKids()} placeholder="e.g. 6" />
+                  </div>
+                  {fErr && <div className="ft-err">⚠️ {fErr}</div>}
+                  <div className="ft-row">
+                    <button className="ft-btn ghost f1" onClick={() => setKidsModal(null)}>Cancel</button>
+                    <button className="ft-btn f2" onClick={startKids}>Next →</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {kidsModal.kids.map((k, i) => (
+                    <div key={i} style={{ border: '1px solid var(--c-line2)', borderRadius: 14, padding: 16, marginBottom: 14 }}>
+                      <div className="ft-fl" style={{ color: 'var(--c-acc)', marginBottom: 12 }}>Child {i + 1} of {kidsModal.kids.length}</div>
+                      <div className="ft-ff">
+                        <label className="ft-fl">Full Name *</label>
+                        <input className="ft-inp" value={k.name} onChange={e => updateKid(i, { name: e.target.value })} placeholder="Child's name" />
+                      </div>
+                      <div className="ft-two">
+                        <div>
+                          <label className="ft-fl">Gender</label>
+                          <select className="ft-inp" value={k.gender} onChange={e => updateKid(i, { gender: e.target.value })}>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="ft-fl">Status</label>
+                          <select className="ft-inp" value={k.isAlive ? 'alive' : 'deceased'} onChange={e => updateKid(i, { isAlive: e.target.value === 'alive' })}>
+                            <option value="alive">Alive</option>
+                            <option value="deceased">Deceased</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 14 }}>
+                        <label className="ft-fl">Date of Birth</label>
+                        <input className="ft-inp" type="date" value={k.dob} max={new Date().toISOString().slice(0, 10)} onChange={e => updateKid(i, { dob: e.target.value })} />
+                      </div>
+                    </div>
+                  ))}
+                  {fErr && <div className="ft-err">⚠️ {fErr}</div>}
+                  <div className="ft-row">
+                    <button className="ft-btn ghost f1" onClick={() => { setFErr(''); setKidsModal(m => ({ ...m, step: 1 })); }}>← Back</button>
+                    <button className="ft-btn f2" onClick={saveKids} disabled={saving}>
+                      {saving ? 'Saving…' : `Save ${kidsModal.kids.length} Child${kidsModal.kids.length > 1 ? 'ren' : ''}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Add / Edit modal ── */}
       {showForm && (
