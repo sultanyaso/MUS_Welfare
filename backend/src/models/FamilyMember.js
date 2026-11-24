@@ -6,6 +6,7 @@ const familyMemberSchema = new mongoose.Schema(
     parentId:   { type: mongoose.Schema.Types.ObjectId, ref: 'FamilyMember', default: null },
     gender:     { type: String, enum: ['male', 'female'], default: 'male' },
     birthYear:  { type: Number, default: null },
+    dob:        { type: Date,   default: null },
     note:       { type: String, default: '', trim: true },
     isAlive:    { type: Boolean, default: true },
     addedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
