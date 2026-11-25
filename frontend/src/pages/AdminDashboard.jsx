@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { adminAPI, paymentAPI, announcementAPI } from '../api';
-import FamilyTreePage from './FamilyTreePage';
+import FamilyTreePage, { FamilyMemoriesPage } from './FamilyTreePage';
+//import FamilyTreePage from './FamilyTreePage';
 
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -446,6 +447,7 @@ const I = {
   announcements: <Svg><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></Svg>,
   members: <Svg><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Svg>,
   tree: <Svg><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="6" x2="6" y2="12"/><line x1="12" y1="6" x2="18" y2="12"/><circle cx="12" cy="2" r="2"/><circle cx="6" cy="14" r="2"/><circle cx="18" cy="14" r="2"/></Svg>,
+  note: <Svg><path d="M4 4h16v12l-5 5H4z"/><path d="M15 21v-5h5M8 9h8M8 13h4"/></Svg>,
   globe: <Svg><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></Svg>,
   logout: <Svg><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Svg>,
   search: <Svg size={16}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></Svg>,
@@ -510,6 +512,7 @@ function AdminSidebar({
     { label: 'Workspace', items: [
       { key: 'members',     label: 'Members',     icon: I.members, badge: stats?.pending, children: MEMBER_FILTERS },
       { key: 'family-tree', label: 'Family Tree', icon: I.tree },
+      { key: 'family-memories', label: 'Yaadein', icon: I.note },
     ]},
     { label: null, items: [
       { key: 'site',   label: 'Public Site', icon: I.globe,  href: '/' },
@@ -687,6 +690,7 @@ const DOCK_ITEMS = [
   { key: 'pending-payments', label: 'Verify Payments', icon: I.verify, badge: 'pendingPayments' },
   { key: 'announcements',    label: 'Announcements',   icon: I.announcements },
   { key: 'family-tree',      label: 'Family Tree',     icon: I.tree },
+  { key: 'family-memories',  label: 'Yaadein',         icon: I.note },
 ];
 
 function Dock({ page, stats, onNavigate }) {
@@ -1822,6 +1826,7 @@ export default function AdminDashboard() {
         {page === 'pending-payments' && <PendingPaymentsPage showToast={showToast} onRefreshStats={fetchStats} />}
         {page === 'announcements'    && <AnnouncementsPage   showToast={showToast} />}
         {page === 'family-tree'      && <FamilyTreePage isAdmin={true} showToast={showToast} />}
+        {page === 'family-memories'  && <FamilyMemoriesPage isAdmin={true} showToast={showToast} />}
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}

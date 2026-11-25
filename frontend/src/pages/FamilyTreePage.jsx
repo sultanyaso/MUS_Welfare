@@ -25,6 +25,15 @@ const MIN_K  = 0.15;
 const MAX_K  = 2.5;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
+/* Yaadein (memories) — sticker types */
+export const STICKERS = {
+  achievement: { icon: '🏅', label: 'Achievement' },
+  service:     { icon: '❤️', label: 'Khidmat' },
+  education:   { icon: '📚', label: 'Taleem' },
+  religious:   { icon: '🕌', label: 'Deeni' },
+  special:     { icon: '⭐', label: 'Khaas' },
+};
+
 function subtreeWidth(node) {
   if (!node.children.length) return NODE_W;
   const childrenW = node.children.reduce((s, c) => s + subtreeWidth(c) + GAP_X, -GAP_X);
@@ -219,6 +228,28 @@ const css = `
 .ft-row .f1 { flex: 1; } .ft-row .f2 { flex: 2; }
 .ft-mtext { font-size: .88rem; line-height: 1.8; font-weight: 300; margin: 0 0 22px; color: var(--c-text); }
 
+/* yaadein (memories) */
+.ft-stks { display: flex; flex-wrap: wrap; gap: 8px; }
+.ft-stk { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 99px; border: 1px solid var(--c-line2); background: transparent; color: var(--c-text); font-size: .76rem; cursor: pointer; transition: all .3s; }
+.ft-stk:hover { border-color: var(--c-acc); }
+.ft-stk.on { border-color: var(--c-acc); background: rgba(var(--c-acc-rgb), .12); color: var(--c-hi); }
+.ft-pmems { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-line); display: flex; flex-direction: column; gap: 10px; max-height: 220px; overflow-y: auto; }
+.ft-pmem { padding: 10px 12px; border-radius: 10px; background: rgba(255,214,102,.1); border: 1px solid rgba(255,214,102,.28); font-size: .78rem; line-height: 1.55; color: var(--c-text); }
+.ft-pmem b { display: block; color: var(--c-hi); font-weight: 600; margin-bottom: 2px; }
+.ft-memgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.ft-mem { position: relative; padding: 20px 20px 16px; border-radius: 6px 6px 14px 6px; background: rgba(255,214,102,.1); border: 1px solid rgba(255,214,102,.3); box-shadow: 0 12px 30px -16px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 8px; transition: transform .4s; }
+.ft-mem:nth-child(odd)  { transform: rotate(-.6deg); }
+.ft-mem:nth-child(even) { transform: rotate(.6deg); }
+.ft-mem:hover { transform: rotate(0) translateY(-3px); }
+.ft-mem .stk { font-size: 1.9rem; line-height: 1; }
+.ft-mem h4 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--c-hi); }
+.ft-mem p { margin: 0; font-size: .86rem; line-height: 1.7; font-weight: 300; color: var(--c-text); white-space: pre-wrap; word-break: break-word; }
+.ft-mem .who { font-size: .72rem; letter-spacing: .5px; color: var(--c-acc); }
+.ft-mem .acts { display: flex; gap: 8px; margin-top: 6px; }
+.ft-mem .acts button { padding: 5px 12px; border-radius: 99px; border: 1px solid var(--c-line2); background: transparent; color: var(--c-text); font-size: .72rem; cursor: pointer; }
+.ft-mem .acts button.del { color: var(--c-danger); border-color: rgba(255,122,122,.4); }
+.ft-node .stkb { font-size: 12px; }
+
 /* small screens */
 @media (max-width: 760px) {
   .ft-stage { height: calc(100dvh - 300px); min-height: 420px; }
@@ -233,6 +264,153 @@ const css = `
   .ft *, .ft-modal { animation-duration: .01s !important; transition-duration: .01s !important; }
 }
 `;
+
+
+/* ══════════════════════════════════════════════════════
+   YAADEIN — write / edit modal (admin)
+══════════════════════════════════════════════════════ */
+function MemoryModal({ memberId, memberName, memory, onClose, onSaved, showToast }) {
+  const [form,   setForm]   = useState({ title: memory?.title || '', text: memory?.text || '', sticker: memory?.sticker || 'special', year: memory?.year || '' });
+  const [saving, setSaving] = useState(false);
+  const [err,    setErr]    = useState('');
+
+  const save = async () => {
+    if (!form.text.trim()) { setErr('Please write something.'); return; }
+    setSaving(true); setErr('');
+    try {
+      if (memory) await familyAPI.updateMemory(memory._id, form);
+      else        await familyAPI.addMemory({ ...form, memberId });
+      showToast?.(memory ? 'Yaad updated.' : 'Yaad saved.', 'success');
+      onSaved();
+    } catch (e) {
+      setErr(e.response?.data?.message || 'Save failed.');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="ft-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="ft-modal" style={{ maxWidth: 500 }}>
+        <div className="ft-mh">
+          <h3>✍️ {memory ? 'Edit Yaad' : 'Write Something'} — {memberName}</h3>
+          <button className="ft-x" style={{ position: 'static' }} onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="ft-mb">
+          <div className="ft-ff">
+            <label className="ft-fl">Sticker</label>
+            <div className="ft-stks">
+              {Object.entries(STICKERS).map(([k, v]) => (
+                <button key={k} type="button" className={`ft-stk${form.sticker === k ? ' on' : ''}`} onClick={() => setForm(f => ({ ...f, sticker: k }))}>
+                  <span>{v.icon}</span>{v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="ft-ff">
+            <label className="ft-fl">Title (optional)</label>
+            <input className="ft-inp" value={form.title} maxLength={120} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Built the village school" />
+          </div>
+          <div className="ft-ff">
+            <label className="ft-fl">Write something *</label>
+            <textarea className="ft-inp" rows={5} maxLength={2000} style={{ resize: 'vertical' }} value={form.text}
+              onChange={e => setForm(f => ({ ...f, text: e.target.value }))} placeholder="What good work did they do, or what should be remembered?" />
+          </div>
+          <div className="ft-ff" style={{ marginBottom: 22 }}>
+            <label className="ft-fl">Year (optional)</label>
+            <input className="ft-inp" type="number" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} placeholder="e.g. 1965" />
+          </div>
+          {err && <div className="ft-err">⚠️ {err}</div>}
+          <div className="ft-row">
+            <button className="ft-btn ghost f1" onClick={onClose}>Cancel</button>
+            <button className="ft-btn f2" onClick={save} disabled={saving}>{saving ? 'Saving…' : memory ? 'Save Changes' : 'Save Yaad'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   FAMILY TREE / YAADEIN PAGE — everyone can read, only admin writes
+══════════════════════════════════════════════════════ */
+export function FamilyMemoriesPage({ isAdmin = false, showToast }) {
+  const [memories, setMemories] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [q,        setQ]        = useState('');
+  const [sticker,  setSticker]  = useState('all');
+  const [editing,  setEditing]  = useState(null);
+
+  const load = useCallback(() => {
+    familyAPI.getMemories()
+      .then(r => setMemories(r.data.memories || []))
+      .catch(() => showToast?.('Failed to load yaadein.', 'error'))
+      .finally(() => setLoading(false));
+  }, [showToast]);
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async m => {
+    if (!window.confirm('Delete this yaad?')) return;
+    try { await familyAPI.removeMemory(m._id); showToast?.('Deleted.', 'success'); load(); }
+    catch { showToast?.('Delete failed.', 'error'); }
+  };
+
+  const list = memories.filter(m => {
+    const t = q.trim().toLowerCase();
+    return (sticker === 'all' || m.sticker === sticker)
+      && (!t || m.member?.name?.toLowerCase().includes(t) || m.title?.toLowerCase().includes(t) || m.text?.toLowerCase().includes(t));
+  });
+
+  return (
+    <div className="ft">
+      <style>{css}</style>
+      <div className="ft-head">
+        <div>
+          <h1 className="ft-h1">Family Tree / Yaadein</h1>
+          <p className="ft-lead">Good deeds and memories of our family members, worth remembering.{isAdmin && ' To add one, open the Family Tree, select a person and press “Write Something”.'}</p>
+        </div>
+        <div className="ft-tools">
+          <input className="ft-inp pill" style={{ paddingLeft: 14 }} value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or text…" />
+        </div>
+      </div>
+
+      <div className="ft-stks" style={{ marginBottom: 22 }}>
+        <button className={`ft-stk${sticker === 'all' ? ' on' : ''}`} onClick={() => setSticker('all')}>All ({memories.length})</button>
+        {Object.entries(STICKERS).map(([k, v]) => (
+          <button key={k} className={`ft-stk${sticker === k ? ' on' : ''}`} onClick={() => setSticker(k)}><span>{v.icon}</span>{v.label}</button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className="ft-lead">Loading…</p>
+      ) : list.length === 0 ? (
+        <p className="ft-lead" style={{ padding: '40px 0', textAlign: 'center' }}>📝 No yaadein yet.</p>
+      ) : (
+        <div className="ft-memgrid">
+          {list.map(m => (
+            <div key={m._id} className="ft-mem">
+              <div className="stk">{STICKERS[m.sticker]?.icon || '⭐'}</div>
+              <h4>{m.title || STICKERS[m.sticker]?.label}</h4>
+              <p>{m.text}</p>
+              <div className="who">{m.member?.name}{m.year ? ` · ${m.year}` : ''}</div>
+              {isAdmin && (
+                <div className="acts">
+                  <button onClick={() => setEditing(m)}>✏️ Edit</button>
+                  <button className="del" onClick={() => remove(m)}>🗑 Delete</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <MemoryModal memory={editing} memberId={editing.member?._id} memberName={editing.member?.name} showToast={showToast}
+          onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
+      )}
+    </div>
+  );
+}
+
+
 
 /* ══════════════════════════════════════════════════════
    FAMILY TREE PAGE
@@ -260,6 +438,8 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
   const emptyForm = { name: '', parentId: '', gender: 'male', birthYear: '', note: '', isAlive: true };
   const [form,   setForm]   = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [memories, setMemories] = useState([]);
+  const [memModal, setMemModal] = useState(null);     // member the admin is writing about
   const [kidsModal, setKidsModal] = useState(null);   // { parent, step: 1 | 2, count, kids: [] }
   const [fErr,   setFErr]   = useState('');
 
@@ -273,6 +453,12 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
   }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
+
+
+  const loadMemories = useCallback(() => {
+    familyAPI.getMemories().then(r => setMemories(r.data.memories || [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadMemories(); }, [loadMemories]);
 
   const { map, positions, edges, w, h } = useMemo(() => {
     const t = buildTree(members);
@@ -546,6 +732,17 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
 
   const kids = selected ? map[selected._id]?.children.length || 0 : 0;
 
+
+
+  const memByMember = useMemo(() => {
+    const out = {};
+    memories.forEach(m => { (out[m.member?._id] ||= []).push(m); });
+    return out;
+  }, [memories]);
+  const selMemories = selected ? memByMember[selected._id] || [] : [];
+  
+  
+
   return (
     <div className="ft">
       <style>{css}</style>
@@ -670,6 +867,10 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
                         {isDead ? '✝ Deceased' : m.birthYear ? `b. ${m.birthYear}` : ''}
                       </text>
 
+                       {memByMember[m._id]?.length > 0 && (
+                        <text className="stkb" x={NODE_W - 16} y={NODE_H - 8} textAnchor="middle">{STICKERS[memByMember[m._id][0].sticker]?.icon || '⭐'}</text>
+                      )}
+
                       {nKids > 0 && (
                         <g>
                           <circle className="cnt-bg" cx={16} cy={NODE_H - 13} r={9} />
@@ -709,8 +910,21 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
               <div className="ft-pkids">👶 {kids} child{kids !== 1 ? 'ren' : ''}</div>
             )}
 
+              {selMemories.length > 0 && (
+              <div className="ft-pmems">
+                <div className="ft-pkids" style={{ marginTop: 0 }}>📝 Yaadein</div>
+                {selMemories.map(m => (
+                  <div key={m._id} className="ft-pmem">
+                    <b>{STICKERS[m.sticker]?.icon} {m.title || STICKERS[m.sticker]?.label}{m.year ? ` · ${m.year}` : ''}</b>
+                    {m.text}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {isAdmin && (
               <div className="ft-pacts">
+                <button className="ft-btn block" onClick={() => setMemModal(selected)}>✍️ Write Something</button>
                 <button className="ft-btn block" onClick={() => openAddChildren(selected)}>+ Add Children</button>
                 <button className="ft-btn ghost block" onClick={() => openEdit(selected)}>✏️ Edit</button>
                 <button className="ft-btn danger block" onClick={() => setDelConfirm(selected)}>🗑 Delete</button>
@@ -719,6 +933,13 @@ export default function FamilyTreePage({ isAdmin = false, showToast }) {
           </div>
         )}
       </div>
+
+
+        {memModal && (
+        <MemoryModal memberId={memModal._id} memberName={memModal.name} showToast={showToast}
+          onClose={() => setMemModal(null)}
+          onSaved={() => { setMemModal(null); loadMemories(); }} />
+      )}
 
 
             {/* ── Add children modal (step 1: how many, step 2: details of each) ── */}

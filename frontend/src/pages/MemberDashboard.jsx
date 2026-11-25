@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { memberAPI, announcementAPI, financeAPI } from '../api';
-import FamilyTreePage from './FamilyTreePage';
+import FamilyTreePage, { FamilyMemoriesPage } from './FamilyTreePage';
+//import FamilyTreePage from './FamilyTreePage';
 import { VerifyPaymentsPage, PaymentReportPage, FIN_CSS } from './FinancePages';
 
 const MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -334,6 +335,7 @@ const PATHS = {
   calendar:  <><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/></>,
   check:     <path d="m5 12 5 5L20 7"/>,
   clock:     <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+  note:      <><path d="M4 4h16v12l-5 5H4z"/><path d="M15 21v-5h5M8 9h8M8 13h4"/></>,
   verify:    <><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></>,
   report:    <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></>,
 };
@@ -501,7 +503,8 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
 
   const showPayments = match('Payments') || match('My Payments') || match('Organisation');
   const showPayNow   = match('Pay Now');
-  const nothing      = main.length === 0 && !showPayments && !showPayNow && finItems.length === 0;
+  const nothing      = main.length === 0 && !showPayments && !showPayNow && finItems.length === 0 && !match('Yaadein');
+
 
   const subs = [
     { key:'mine', label:'My Payments',  color:'#9db8ff' },
@@ -546,6 +549,14 @@ function Sidebar({ page, setPage, payTab, setPayTab, stats, user, logout, collap
             {main.map(i => (
               <NavItem key={i.key} icon={i.icon} label={i.label} dot={i.dot} active={page === i.key} onClick={() => go(i.key)}/>
             ))}
+
+              {(main.some(i => i.key === 'family-tree') || match('Yaadein')) && (
+              <div className="sub-wrap open"><div><div className="sub-in" style={{ marginTop: 0 }}>
+                <button className={`sub-item${page === 'family-memories' ? ' active' : ''}`} onClick={() => go('family-memories')}>
+                  <span className="pdot" style={{ background:'#f5c26b' }}/>Yaadein
+                </button>
+              </div></div></div>
+            )}
 
             {showPayments && (
               <>
@@ -632,6 +643,7 @@ const DOCK_ITEMS = [
   { key: 'payments',      label: 'Payments',      icon: 'card', dot: 'pay' },
   { key: 'announcements', label: 'Announcements', icon: 'bell', dot: 'ann' },
   { key: 'family-tree',   label: 'Family Tree',   icon: 'tree' },
+  { key: 'family-memories', label: 'Yaadein',     icon: 'note' },
 ];
 
 const FIN_DOCK_ITEMS = [
@@ -1600,6 +1612,7 @@ export default function MemberDashboard() {
         )}
         {page === 'announcements' && <AnnouncementsPage/>}
         {page === 'family-tree' && <FamilyTreePage isAdmin={false} showToast={showToast}/>}
+        {page === 'family-memories' && <FamilyMemoriesPage isAdmin={false} showToast={showToast}/>}
         {isFinance && page === 'verify-payments' && <VerifyPaymentsPage showToast={showToast} onChanged={fetchFinPending}/>}
         {isFinance && page === 'payment-report'  && <PaymentReportPage showToast={showToast} user={user}/>}
       </main>
