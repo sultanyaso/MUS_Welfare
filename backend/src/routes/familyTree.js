@@ -1,5 +1,6 @@
 import express from 'express';
 import FamilyMember from '../models/FamilyMember.js';
+import FamilyMemory from '../models/FamilyMemory.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -11,6 +12,76 @@ router.get('/', async (req, res) => {
     const members = await FamilyMember.find().sort({ createdAt: 1 });
     return res.json({ members });
   } catch (err) {
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ── Yaadein (memories / achievements) ────────────────────────
+const STICKERS = ['achievement', 'service', 'education', 'religious', 'special'];
+
+// GET /api/family-tree/memories — everyone (logged in) can read
+router.get('/memories', async (_req, res) => {
+  try {
+    const memories = await FamilyMemory.find()
+      .populate('member', 'name gender isAlive')
+      .sort({ createdAt: -1 });
+    return res.json({ memories: memories.filter(m => m.member) });   // skip orphans
+  } catch {
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// POST /api/family-tree/memories — admin only
+router.post('/memories', requireAdmin, async (req, res) => {
+  try {
+    const { memberId, title, text, sticker, year } = req.body;
+    if (!memberId) return res.status(400).json({ message: 'memberId is required.' });
+    if (!text?.trim()) return res.status(400).json({ message: 'Please write something.' });
+    if (!(await FamilyMember.exists({ _id: memberId }))) return res.status(404).json({ message: 'Family member not found.' });
+
+    const memory = await FamilyMemory.create({
+      member:  memberId,
+      title:   title?.trim() || '',
+      text:    text.trim(),
+      sticker: STICKERS.includes(sticker) ? sticker : 'special',
+      year:    year ? Number(year) : null,
+      addedBy: req.user.id,
+    });
+    return res.status(201).json({ message: 'Yaad saved.', memory });
+  } catch (err) {
+    console.error('Add memory error:', err);
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// PATCH /api/family-tree/memories/:id — admin only
+router.patch('/memories/:id', requireAdmin, async (req, res) => {
+  try {
+    const { title, text, sticker, year } = req.body;
+    const updates = {};
+    if (title   !== undefined) updates.title   = title.trim();
+    if (text    !== undefined) {
+      if (!text.trim()) return res.status(400).json({ message: 'Please write something.' });
+      updates.text = text.trim();
+    }
+    if (sticker !== undefined && STICKERS.includes(sticker)) updates.sticker = sticker;
+    if (year    !== undefined) updates.year = year ? Number(year) : null;
+
+    const memory = await FamilyMemory.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!memory) return res.status(404).json({ message: 'Not found.' });
+    return res.json({ message: 'Updated.', memory });
+  } catch {
+    return res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// DELETE /api/family-tree/memories/:id — admin only
+router.delete('/memories/:id', requireAdmin, async (req, res) => {
+  try {
+    const memory = await FamilyMemory.findByIdAndDelete(req.params.id);
+    if (!memory) return res.status(404).json({ message: 'Not found.' });
+    return res.json({ message: 'Deleted.' });
+  } catch {
     return res.status(500).json({ message: 'Server error.' });
   }
 });
@@ -108,6 +179,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       queue = ids;
     }
     await FamilyMember.deleteMany({ _id: { $in: toDelete } });
+    await FamilyMemory.deleteMany({ member: { $in: toDelete } });
     return res.json({ message: `Deleted ${toDelete.length} member(s).` });
   } catch (err) {
     return res.status(500).json({ message: 'Server error.' });
