@@ -78,6 +78,10 @@ export const familyAPI = {
   getAll:    ()           => api.get('/family-tree'),
   addMember: (data)       => api.post('/family-tree', data),
   addChildren: (parentId, children) => api.post('/family-tree/bulk', { parentId, children }),
+  getMemories:  ()         => api.get('/family-tree/memories'),
+  addMemory:    data       => api.post('/family-tree/memories', data),
+  updateMemory: (id, data) => api.patch(`/family-tree/memories/${id}`, data),
+  removeMemory: id         => api.delete(`/family-tree/memories/${id}`),
   update:    (id, data)   => api.patch(`/family-tree/${id}`, data),
   remove:    (id)         => api.delete(`/family-tree/${id}`),
 };
